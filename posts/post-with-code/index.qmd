@@ -1,9 +1,13 @@
 ---
-title: "Post With Code"
-author: "Harlow Malloc"
+title: "Grammar of Graphics with PyMC"
+author: "Ryan Plain"
 date: "2025-05-14"
-categories: [news, code, analysis]
+categories: [Bayesian, PyMC, Plotnine]
 image: "image.jpg"
 ---
 
-This is a post with executable code.
+
+```{python}
+1 + 1
+
+```

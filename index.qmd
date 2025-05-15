@@ -1,5 +1,5 @@
 ---
-title: "plain-data"
+title: "Just Plain Data"
 listing:
   contents: posts
   sort: "date desc"
