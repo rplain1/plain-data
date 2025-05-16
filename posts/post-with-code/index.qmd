@@ -1,13 +1,240 @@
 ---
-title: "Grammar of Graphics with PyMC"
+title: "TidyPyMC"
 author: "Ryan Plain"
 date: "2025-05-14"
 categories: [Bayesian, PyMC, Plotnine]
-image: "image.jpg"
+engine: jupyter
 ---
+
+## Tidybayes in Python would be cool
+
+A few weeks ago, Benjamin Vincent posted [this blog post](https://drbenvincent.github.io/posts/mcmc_grammar_of_graphics.html) on using Bayesian models in Python _and_ leveraging the grammar of graphics for plotting. Please take the time to read that post as this is derived and inteded to augment the ideas shared there.
+
+At the end of the post, Vincent asked "It would be interesting to see if this approach is appealing to people." My answer to that is... YES‼️
+
+I like `PyMC` and `ArviZ` a lot, but it was a huge blow coming from `R` and libraries like `tidybayes`, `bayesplots`, and others that helped wrangle and visualize the posterior.
+
+I fully agree with the approach of `ArviZ` to work with high-dimensional data, but comming from a stats background it is more intuitive to work with things as dataframes rather than objects whenever it makes sense. This is especially true with visualizations and the grammar of graphics.
+
+I'm not sure how or what the best way to contribute to this, and it was mentioned on bluesky that [GoG-like interface is being developped for ArviZ 1.0](https://bsky.app/profile/sethaxen.com/post/3loaw2tpucs2v). The best thing I can do is create a post for me.
+
+
+## TidyPyMC
+
+This is definitely subjective, but I think the missing commponent right now is a consistent way to turn the `arviz.InferenceData` object into a dataframe. Both this and the code Vincent shared is highly custom to the model, and from my experience that is typically a common design choice between R and Python libraries. There is tradeoffs to both paradigms.
+
+There are a couple of plots in `tidybayes` [add_epred_draws()](https://mjskay.github.io/tidybayes/reference/add_predicted_draws.html) and [add_predicted_draws()](https://mjskay.github.io/tidybayes/reference/add_predicted_draws.html) that show some of its capabilities. The goal of this is to replicate them.
+
+To accomplish this, we will bring the observed data, linear predictions, and posterior predictions in the same dataframe.
+
+### Libraries and data
+
+We'll use the `mtcars` dataset to replicate some of the `tidybayes` examples.
+
+```{python}
+import pandas as pd
+import pymc as pm
+import arviz as az
+import numpy as np
+
+from plotnine.data import mtcars
+from plotnine import * # elmo_fire.gif namespace, but they mostly start with geom_*
+mtcars.head()
+```
+
+## Model
+
+This is an attempt at replicating the model [here](https://mjskay.github.io/tidybayes/reference/add_predicted_draws.html).
+
+The formula is following `mpg ~ hp * cyl` fit with `brms`.
+
+::: {.callout-note}
+The scope of this wasn't necessarily to walk through creating a pymc model or walk through the workflow of prior predictive checks, diagnostics, etc. I took the priors from `brms::stancode(brms::brm(mpg ~ hp * cyl, data = mtcars))` in R. I also used `PyMC` over `Bambi`, but both libraries work off the `arviz.InferenceData` object.
+:::
+
+```{python}
+
+# build model and sample posterior
+with pm.Model(
+    coords={"obs": mtcars.index, "predictors": ['hp', 'cyl']}
+) as mod:
+
+    X = pm.Data("X", mtcars[["hp", "cyl"]], dims=("obs", "predictors"))
+
+    alpha = pm.StudentT("alpha", nu=3, mu=19.2, sigma=5.4)
+    sigma = pm.HalfStudentT("sigma", nu=3, sigma=5.54)
+    beta = pm.Normal("b", mu=0, sigma=1, dims='predictors')
+
+    mu = pm.Deterministic("mu", alpha + pm.math.dot(X, beta), dims='obs')
+
+    y = pm.Normal(
+        "y",
+        mu=mu,
+        sigma=sigma,
+        shape=X.shape[0],
+        observed=mtcars["mpg"],
+        dims="obs",
+    )
+
+    idata = pm.sample(random_seed=527) # got an anniversary comming up
+
+# sample posterior predictive
+with mod as model:
+    pp = pm.sample_posterior_predictive(idata, predictions=True)
+```
+
+### Tidy up
+
+The biggest takeaway I had from Vincent's post was it wsa possible to get tidy data out of the `arviz.InferenceData` object, and this was by far the most difficult part to get my head around.
+
+From `idata.posterior`, we'll take three things:
+
+- global parameters: `sigma`, `alpha`
+- parameters `beta` (2)
+- linear predictions `mu`
+
+
+
+The key is to understand the dimensions of which attribute you want ot get and which ones are the same.
+
+```{python}
+print(f'alpha: {idata.posterior["alpha"].shape}')
+print(f'sigma: {idata.posterior["sigma"].shape}')
+print(f'beta: {idata.posterior["b"].shape}')
+print(f'mu: {idata.posterior["mu"].shape}')
+
+```
+
+- Both `alpha` and `sigma` are the same shape becuause they are global parameters.
+- `beta` has the same number of draws, each is represented as a row that will pivot
+- `mu` has the same number of draws but for each observation
+
+```{python}
+params = idata.posterior[["sigma", "alpha"]].to_dataframe().reset_index()
+betas = (
+    idata.posterior["b"]
+    .to_dataframe()
+    .reset_index()
+    .pivot(index=["chain", "draw"], columns="predictors", values="b")
+    .reset_index()
+)
+
+df_posterior = params.merge(betas, on=["chain", "draw"])
+
+df_posterior = (
+    idata.posterior["mu"]
+    .to_dataframe()
+    .reset_index()
+    .merge(mtcars[["cyl", "mpg", "hp"]], left_on="obs", right_on=mtcars.index)
+    .merge(params, on=["chain", "draw"])
+    .merge(betas, on=["chain", "draw"], suffixes=["", "_b"])
+    .assign( # for plotting later
+        group=lambda x: x.cyl.astype(str)
+        + "_"
+        + x.draw.astype(str)
+        + "_"
+        + x.chain.astype(str)
+    )
+)
+
+df_posterior
+```
+
+The critical takeaway I had from implementing this was learn to leverage `coords` and `dims` in the model container. This makes it easier to work with the data later, especially as dimensions increase (i.e. groups in a multilevel model).
+
+This sets the posterior to be represented in a tidy dataframe, exactly how Vincent did it. I'm really interested what ways we can cofigure the atributes with `PyMC` to make this generalize across different models and data.
+
+### Posterior predictive
+
+One way would be to do this would be to use `arviz.summary()` on the sampled posterior predictions. This is a common workflow I would do with `brms` and `tidybayes` of parsing parameter outputs name to match the group, or join an id with the original dataset.
+
+```{python}
+df_predictions = az.summary(pp)
+```
+
+Next steps to join it with the observed data.
+
+```{python}
+df_predictions.index = df_predictions.index.str.extract(r"y\[(.*?)\]")[0]
+
+df_predictions = df_predictions.merge(mtcars[["hp", "cyl", "mpg"]], on=df_predictions.index)
+df_predictions.head()
+```
+
+This worked well with the named index on `mtcars`. I'm not a fan of `pandas`, and I've long forgotten a lot of tips and tricks to work with the nuances of `pandas` after a couple of years of using `polars`. For future me, I'm going to include a standarad approach of working with the posterior.
+
+```{python}
+
+df_posterior_predictive = (
+    pp.predictions["y"]
+    .to_dataframe()
+    .reset_index()
+    .merge(mtcars[["cyl", "hp"]], left_on="obs", right_on=mtcars.index)
+)
+
+df_posterior_predictive
+
+```
+
+The data is aggregated to match the `az.summary()` output since this particular `geom_ribbon()` visualization will only need the HDI values of the posterior predictive distribution.
+
+```{python}
+df_predictions = (
+    df_posterior_predictive.groupby(["obs", "cyl", "hp"])
+    .agg(
+        pp_mean=("y", "mean"),
+        pp_min=("y", lambda x: x.quantile(0.03)),
+        pp_max=("y", lambda x: x.quantile(0.97)),
+    )
+    .reset_index()
+)
+df_predictions.head()
+```
+
+### The plot is coming together
+
+Plotnine! With the grammar of graphics, we're able to:
+
+- use different datasets
+- layer aesthetics together
+- think about plots with data
 
 
 ```{python}
-1 + 1
 
+# sample draws for plotting purposes
+samples = np.random.choice(
+    [x for x in range(999)], size=int(5), replace=False
+)
+
+(
+    ggplot(mtcars, aes("hp", "mpg", color="factor(cyl)", fill="factor(cyl)"))
+    + geom_ribbon(
+        aes(y="pp_mean", ymin="pp_min", ymax="pp_max"), data=df_predictions, alpha=0.2
+    )
+    + geom_line(
+        aes(y="mu", group="group"),
+        data=df_posterior[df_posterior.draw.isin(samples)],
+        alpha=0.6,
+    )
+    + geom_point()
+    + theme_minimal()
+    + labs(color='cyl', fill='cyl')
+)
 ```
+
+
+
+## But Why?
+
+I'm in the middle of a journey to learn Bayesian statsistics.
+
+I can't state enough what great work the community has done to make it open and accessible. I started out, like many others, with [Richard McElreath's Statistical Rethinking](https://xcelab.net/rm/), and then following along with Solomon Kurz's [Statistical rethinking with brms, ggplot, and the tidyverse](https://bookdown.org/content/4857/). Those are R environments but the PyMC community has gret material on getting started and using it for Bayesian Stats.
+
+There is a steep learning curve on the theory, but also with the tooling. To do modern Bayesian modeling, you need to interact with a probablelistic programmming languages (PPL). The frameworks and libraries are dramatically different depending on the language or environment being used.
+
+It's daunting! Knowing the theory doesn't necessarily make it easier to use the tool. Learning one PPL framework doesn't mean it will be trivial to move to another. As a beginner, [brms](https://paulbuerkner.com/brms/) and [Bambi](https://bambinos.github.io/bambi/) are excellent libraries that lower the barrier of entry and make the model building process easier. The downside is with so much abstracted away, it can make it difficult to really learn what is going on.
+
+Stepping out from `brms` to [Stan](https://mc-stan.org/) was like falling off a cliff. I wanted something that worked better for me, and `PyMC` was a good blend of what I needed in my journey, and to my surprise have liked it a lot. I felt like I made a lot of progress solidifying concepts building models I had made in `brms` to `PyMC`, however I spent most of the time trying to learn how to use the `az.InferenceData` object.
+
+I see a lot of value getting a way to work with tidy datasets, both in learning and in application.
