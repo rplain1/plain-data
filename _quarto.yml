@@ -7,9 +7,9 @@ website:
     right:
       - about.qmd
       - icon: github
-        href: https://github.com/
-      - icon: twitter
-        href: https://twitter.com
+        href: https://github.com/rplain1
+      - icon: bluesky
+        href: https://bsky.app/profile/ryanplain.bsky.social
 format:
   html:
     theme: cosmo

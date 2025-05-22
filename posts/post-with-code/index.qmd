@@ -76,7 +76,7 @@ with pm.Model(
         dims="obs",
     )
 
-    idata = pm.sample(random_seed=527) # got an anniversary comming up
+    idata = pm.sample(random_seed=527)
 
 # sample posterior predictive
 with mod as model:
@@ -143,6 +143,10 @@ df_posterior
 The critical takeaway I had from implementing this was learn to leverage `coords` and `dims` in the model container. This makes it easier to work with the data later, especially as dimensions increase (i.e. groups in a multilevel model).
 
 This sets the posterior to be represented in a tidy dataframe, exactly how Vincent did it. I'm really interested what ways we can cofigure the atributes with `PyMC` to make this generalize across different models and data.
+
+::: {.callout-note}
+I've come back to this and realized adding in the parameters doesn't make it "tidy", and also doesn't get used in the plots. It is still beneficial to include how to go about joining the parameters posterior draws to the data, and anyway... this post is for future me.
+:::
 
 ### Posterior predictive
 
@@ -222,19 +226,3 @@ samples = np.random.choice(
     + labs(color='cyl', fill='cyl')
 )
 ```
-
-
-
-## But Why?
-
-I'm in the middle of a journey to learn Bayesian statsistics.
-
-I can't state enough what great work the community has done to make it open and accessible. I started out, like many others, with [Richard McElreath's Statistical Rethinking](https://xcelab.net/rm/), and then following along with Solomon Kurz's [Statistical rethinking with brms, ggplot, and the tidyverse](https://bookdown.org/content/4857/). Those are R environments but the PyMC community has gret material on getting started and using it for Bayesian Stats.
-
-There is a steep learning curve on the theory, but also with the tooling. To do modern Bayesian modeling, you need to interact with a probablelistic programmming languages (PPL). The frameworks and libraries are dramatically different depending on the language or environment being used.
-
-It's daunting! Knowing the theory doesn't necessarily make it easier to use the tool. Learning one PPL framework doesn't mean it will be trivial to move to another. As a beginner, [brms](https://paulbuerkner.com/brms/) and [Bambi](https://bambinos.github.io/bambi/) are excellent libraries that lower the barrier of entry and make the model building process easier. The downside is with so much abstracted away, it can make it difficult to really learn what is going on.
-
-Stepping out from `brms` to [Stan](https://mc-stan.org/) was like falling off a cliff. I wanted something that worked better for me, and `PyMC` was a good blend of what I needed in my journey, and to my surprise have liked it a lot. I felt like I made a lot of progress solidifying concepts building models I had made in `brms` to `PyMC`, however I spent most of the time trying to learn how to use the `az.InferenceData` object.
-
-I see a lot of value getting a way to work with tidy datasets, both in learning and in application.
