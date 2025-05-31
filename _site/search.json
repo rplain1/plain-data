@@ -25,7 +25,7 @@
     "href": "about.html",
     "title": "About",
     "section": "",
-    "text": "About that"
+    "text": "I’m an all things data professional living in Colorado Springs, currently working in healthcare supporting their provider network infrastructure. Previously I worked in tech doing product analytics and data science. Prior to that I worked in aviation simulating passenger traffic through airport facilties.\nI’m passionate about making things more efficient, and a proponent of working with what tool and environment works best for you. Designing designing solutions that are inclusive for everyone is something I enjoy.\nIn my free time I love exploring the outdoors, climbing, yoga, snowboarding, and spending time with my wife, dogs, and cat (if she lets me)."
   },
   {
     "objectID": "posts/post-with-code/index.html#tidybayes-in-python-would-be-cool",
@@ -194,5 +194,26 @@
     "title": "Reticulate and PyMC",
     "section": "Rython",
     "text": "Rython\nThis is an opinionated way of using PyMC and the grammar of graphics together to say the least. I really do like PyMC, but I prefer to settle on the data and other parts of the model iteration process with R if possible. There is potential for reticulate::py_run_string() as well, if you wanted to be able to drop it directly back into a pure Python environment. Access to an LLM would also be able to easily reformat the R PyMC model to Python or at least get it most of the way there.\nOverall really impressed with the state of combing R and Python together. When I started my career, there weren’t a ton of options outside of doing I/O with csv’s to bring them together. Now in the same process I can use a full feature Python library for probabilistic programming, and then use non-standard evaluation for data transfromation and visualization in R.\nA typo I had in this at one point was Rython, and given my name.. and I quite like it."
+  },
+  {
+    "objectID": "about.html#bio",
+    "href": "about.html#bio",
+    "title": "About",
+    "section": "",
+    "text": "I’m an all things data professional living in Colorado Springs, currently working in healthcare supporting their provider network infrastructure. Previously I worked in tech doing product analytics and data science. Prior to that I worked in aviation simulating passenger traffic through airport facilties.\nI’m passionate about making things more efficient, and a proponent of working with what tool and environment works best for you. Designing designing solutions that are inclusive for everyone is something I enjoy.\nIn my free time I love exploring the outdoors, climbing, yoga, snowboarding, and spending time with my wife, dogs, and cat (if she lets me)."
+  },
+  {
+    "objectID": "about.html#experience",
+    "href": "about.html#experience",
+    "title": "About",
+    "section": "Experience",
+    "text": "Experience\nKaiser Permanente | Data Reporiting and Analytics Consultant\nClover | Sr. Data Analyst\nSouthwest Airlines | Data Analyst"
+  },
+  {
+    "objectID": "about.html#education",
+    "href": "about.html#education",
+    "title": "About",
+    "section": "Education",
+    "text": "Education\nGeorgia Institute of Technology | Atlanta, GA\nM.S. in Analytics\nThe University of North Texas | Denton, TX\nB.B.A. in Business Analytics"
   }
 ]

@@ -15,4 +15,29 @@ about:
 
 ---
 
-About that
+## Bio
+
+I’m an all things data professional living in Colorado Springs, currently working in healthcare supporting their provider network infrastructure. Previously I worked in tech doing product analytics and data science. Prior to that I worked in aviation simulating passenger traffic through airport facilties.
+
+I'm passionate about making things more efficient, and a proponent of working with what tool and environment works best for you. Designing designing solutions that are inclusive for everyone is something I enjoy.
+
+In my free time I love exploring the outdoors, climbing, yoga, snowboarding, and spending time with my wife, dogs, and cat (if she lets me).
+
+## Experience
+
+Kaiser Permanente | Data Reporiting and Analytics Consultant
+
+Clover | Sr. Data Analyst
+
+Southwest Airlines | Data Analyst
+
+
+## Education
+
+Georgia Institute of Technology | Atlanta, GA
+
+**M.S. in Analytics**
+
+The University of North Texas | Denton, TX
+
+**B.B.A. in Business Analytics**
