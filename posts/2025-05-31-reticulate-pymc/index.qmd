@@ -245,8 +245,8 @@ df_predictions |>
 
 ## Rython
 
-This is an opinionated way of using PyMC and the grammar of graphics together to say the least. I really do like PyMC, but I prefer to settle on the data and other parts of the model iteration process with R if possible. There is potential for `reticulate::py_run_string()` as well, if you wanted to be able to drop it directly back into a pure Python environment. Access to an LLM would also be able to easily reformat the R PyMC model to Python or at least get it most of the way there.
+This is an opinionated way of using PyMC and the grammar of graphics together to say the least. I really do like PyMC, but I prefer to settle on the data and other parts of the model iteration process with R if possible. There is potential for `reticulate::py_run_string()` as well, if you wanted to be able to drop it directly back into a pure Python environment. Access to an LLM would also be able to easily reformat the R-PyMC model to Python, or at least get it most of the way there.
 
-Overall really impressed with the state of combing R and Python together. When I started my career, there weren't a ton of options outside of doing I/O with csv's to bring them together. Now in the same process I can use a full feature Python library for probabilistic programming, and then use non-standard evaluation for data transfromation and visualization in R.
+Overall really impressed with the state of combing R and Python together. When I started my career, there weren't a ton of options outside of doing a ton of I/O with csv's to bring them together. Now within the same process I can use a full-feature Python probablistic programming library, with non-standard evaluation for data transfromation and visualization in R.
 
 A typo I had in this at one point was Rython, and given my name.. and I quite like it.
