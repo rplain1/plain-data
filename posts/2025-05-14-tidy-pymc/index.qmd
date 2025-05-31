@@ -201,7 +201,7 @@ Plotnine! With the grammar of graphics, we're able to:
 
 - use different datasets
 - layer aesthetics together
-- think about plots with data
+- think about plots in terms of data
 
 
 ```{python}

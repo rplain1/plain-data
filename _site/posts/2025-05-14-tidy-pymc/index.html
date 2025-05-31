@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ryan Plain">
+<meta name="dcterms.date" content="2025-05-14">
+
+<title>Just Plain Data - TidyPyMC</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+<script src="https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js" crossorigin="anonymous"></script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Just Plain Data</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html" rel="" target="">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/rplain1" rel="" target=""><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://bsky.app/profile/ryanplain.bsky.social" rel="" target=""><i class="bi bi-bluesky" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">TidyPyMC</h1>
+                                <div class="quarto-categories">
+                <div class="quarto-category">Bayesian</div>
+                <div class="quarto-category">PyMC</div>
+                <div class="quarto-category">Plotnine</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Ryan Plain </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">May 14, 2025</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+<section id="tidybayes-in-python-would-be-cool" class="level2">
+<h2 class="anchored" data-anchor-id="tidybayes-in-python-would-be-cool">Tidybayes in Python would be cool</h2>
+<p>A few weeks ago, Benjamin Vincent posted <a href="https://drbenvincent.github.io/posts/mcmc_grammar_of_graphics.html">this blog post</a> on using Bayesian models in Python <em>and</em> leveraging the grammar of graphics for plotting. Please take the time to read that post as this is derived and inteded to augment the ideas shared there.</p>
+<p>At the end of the post, Vincent asked “It would be interesting to see if this approach is appealing to people.” My answer to that is… YES‼️</p>
+<p>I like <code>PyMC</code> and <code>ArviZ</code> a lot, but it was a huge blow coming from <code>R</code> and libraries like <code>tidybayes</code>, <code>bayesplots</code>, and others that helped wrangle and visualize the posterior.</p>
+<p>I fully agree with the approach of <code>ArviZ</code> to work with high-dimensional data, but comming from a stats background it is more intuitive to work with things as dataframes rather than objects whenever it makes sense. This is especially true with visualizations and the grammar of graphics.</p>
+<p>I’m not sure how or what the best way to contribute to this, and it was mentioned on bluesky that <a href="https://bsky.app/profile/sethaxen.com/post/3loaw2tpucs2v">GoG-like interface is being developped for ArviZ 1.0</a>. The best thing I can do is create a post for me.</p>
+</section>
+<section id="tidypymc" class="level2">
+<h2 class="anchored" data-anchor-id="tidypymc">TidyPyMC</h2>
+<p>This is definitely subjective, but I think the missing commponent right now is a consistent way to turn the <code>arviz.InferenceData</code> object into a dataframe. Both this and the code Vincent shared is highly custom to the model, and from my experience that is typically a common design choice between R and Python libraries. There is tradeoffs to both paradigms.</p>
+<p>There are a couple of plots in <code>tidybayes</code> <a href="https://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">add_epred_draws()</a> and <a href="https://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">add_predicted_draws()</a> that show some of its capabilities. The goal of this is to replicate them.</p>
+<p>To accomplish this, we will bring the observed data, linear predictions, and posterior predictions in the same dataframe.</p>
+<section id="libraries-and-data" class="level3">
+<h3 class="anchored" data-anchor-id="libraries-and-data">Libraries and data</h3>
+<p>We’ll use the <code>mtcars</code> dataset to replicate some of the <code>tidybayes</code> examples.</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pymc <span class="im">as</span> pm</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> arviz <span class="im">as</span> az</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> plotnine.data <span class="im">import</span> mtcars</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> plotnine <span class="im">import</span> <span class="op">*</span> <span class="co"># elmo_fire.gif namespace, but they mostly start with geom_*</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>mtcars.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">name</th>
+<th data-quarto-table-cell-role="th">mpg</th>
+<th data-quarto-table-cell-role="th">cyl</th>
+<th data-quarto-table-cell-role="th">disp</th>
+<th data-quarto-table-cell-role="th">hp</th>
+<th data-quarto-table-cell-role="th">drat</th>
+<th data-quarto-table-cell-role="th">wt</th>
+<th data-quarto-table-cell-role="th">qsec</th>
+<th data-quarto-table-cell-role="th">vs</th>
+<th data-quarto-table-cell-role="th">am</th>
+<th data-quarto-table-cell-role="th">gear</th>
+<th data-quarto-table-cell-role="th">carb</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>Mazda RX4</td>
+<td>21.0</td>
+<td>6</td>
+<td>160.0</td>
+<td>110</td>
+<td>3.90</td>
+<td>2.620</td>
+<td>16.46</td>
+<td>0</td>
+<td>1</td>
+<td>4</td>
+<td>4</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>Mazda RX4 Wag</td>
+<td>21.0</td>
+<td>6</td>
+<td>160.0</td>
+<td>110</td>
+<td>3.90</td>
+<td>2.875</td>
+<td>17.02</td>
+<td>0</td>
+<td>1</td>
+<td>4</td>
+<td>4</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>Datsun 710</td>
+<td>22.8</td>
+<td>4</td>
+<td>108.0</td>
+<td>93</td>
+<td>3.85</td>
+<td>2.320</td>
+<td>18.61</td>
+<td>1</td>
+<td>1</td>
+<td>4</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>Hornet 4 Drive</td>
+<td>21.4</td>
+<td>6</td>
+<td>258.0</td>
+<td>110</td>
+<td>3.08</td>
+<td>3.215</td>
+<td>19.44</td>
+<td>1</td>
+<td>0</td>
+<td>3</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>Hornet Sportabout</td>
+<td>18.7</td>
+<td>8</td>
+<td>360.0</td>
+<td>175</td>
+<td>3.15</td>
+<td>3.440</td>
+<td>17.02</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="model" class="level2">
+<h2 class="anchored" data-anchor-id="model">Model</h2>
+<p>This is an attempt at replicating the model <a href="https://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">here</a>.</p>
+<p>The formula is following <code>mpg ~ hp * cyl</code> fit with <code>brms</code>.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The scope of this wasn’t necessarily to walk through creating a pymc model or walk through the workflow of prior predictive checks, diagnostics, etc. I took the priors from <code>brms::stancode(brms::brm(mpg ~ hp * cyl, data = mtcars))</code> in R. I also used <code>PyMC</code> over <code>Bambi</code>, but both libraries work off the <code>arviz.InferenceData</code> object.</p>
+</div>
+</div>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># build model and sample posterior</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> pm.Model(</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    coords<span class="op">=</span>{<span class="st">"obs"</span>: mtcars.index, <span class="st">"predictors"</span>: [<span class="st">'hp'</span>, <span class="st">'cyl'</span>]}</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>) <span class="im">as</span> mod:</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> pm.Data(<span class="st">"X"</span>, mtcars[[<span class="st">"hp"</span>, <span class="st">"cyl"</span>]], dims<span class="op">=</span>(<span class="st">"obs"</span>, <span class="st">"predictors"</span>))</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    alpha <span class="op">=</span> pm.StudentT(<span class="st">"alpha"</span>, nu<span class="op">=</span><span class="dv">3</span>, mu<span class="op">=</span><span class="fl">19.2</span>, sigma<span class="op">=</span><span class="fl">5.4</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    sigma <span class="op">=</span> pm.HalfStudentT(<span class="st">"sigma"</span>, nu<span class="op">=</span><span class="dv">3</span>, sigma<span class="op">=</span><span class="fl">5.54</span>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    beta <span class="op">=</span> pm.Normal(<span class="st">"b"</span>, mu<span class="op">=</span><span class="dv">0</span>, sigma<span class="op">=</span><span class="dv">1</span>, dims<span class="op">=</span><span class="st">'predictors'</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    mu <span class="op">=</span> pm.Deterministic(<span class="st">"mu"</span>, alpha <span class="op">+</span> pm.math.dot(X, beta), dims<span class="op">=</span><span class="st">'obs'</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    y <span class="op">=</span> pm.Normal(</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">"y"</span>,</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        mu<span class="op">=</span>mu,</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        sigma<span class="op">=</span>sigma,</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        shape<span class="op">=</span>X.shape[<span class="dv">0</span>],</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        observed<span class="op">=</span>mtcars[<span class="st">"mpg"</span>],</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        dims<span class="op">=</span><span class="st">"obs"</span>,</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    idata <span class="op">=</span> pm.sample(random_seed<span class="op">=</span><span class="dv">527</span>)</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="co"># sample posterior predictive</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> mod <span class="im">as</span> model:</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    pp <span class="op">=</span> pm.sample_posterior_predictive(idata, predictions<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Initializing NUTS using jitter+adapt_diag...
+Multiprocess sampling (4 chains in 4 jobs)
+NUTS: [alpha, sigma, b]
+Sampling 4 chains for 1_000 tune and 1_000 draw iterations (4_000 + 4_000 draws total) took 2 seconds.
+Sampling: [y]</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"ead4d1fed4994891a14eb14a95240c8f","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"></pre>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"1ef69e61bfe7433f8d4f2bb012d9089d","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"></pre>
+</div>
+</div>
+<section id="tidy-up" class="level3">
+<h3 class="anchored" data-anchor-id="tidy-up">Tidy up</h3>
+<p>The biggest takeaway I had from Vincent’s post was it wsa possible to get tidy data out of the <code>arviz.InferenceData</code> object, and this was by far the most difficult part to get my head around.</p>
+<p>From <code>idata.posterior</code>, we’ll take three things:</p>
+<ul>
+<li>global parameters: <code>sigma</code>, <code>alpha</code></li>
+<li>parameters <code>beta</code> (2)</li>
+<li>linear predictions <code>mu</code></li>
+</ul>
+<p>The key is to understand the dimensions of which attribute you want ot get and which ones are the same.</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'alpha: </span><span class="sc">{</span>idata<span class="sc">.</span>posterior[<span class="st">"alpha"</span>]<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'sigma: </span><span class="sc">{</span>idata<span class="sc">.</span>posterior[<span class="st">"sigma"</span>]<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'beta: </span><span class="sc">{</span>idata<span class="sc">.</span>posterior[<span class="st">"b"</span>]<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'mu: </span><span class="sc">{</span>idata<span class="sc">.</span>posterior[<span class="st">"mu"</span>]<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>alpha: (4, 1000)
+sigma: (4, 1000)
+beta: (4, 1000, 2)
+mu: (4, 1000, 32)</code></pre>
+</div>
+</div>
+<ul>
+<li>Both <code>alpha</code> and <code>sigma</code> are the same shape becuause they are global parameters.</li>
+<li><code>beta</code> has the same number of draws, each is represented as a row that will pivot</li>
+<li><code>mu</code> has the same number of draws but for each observation</li>
+</ul>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>params <span class="op">=</span> idata.posterior[[<span class="st">"sigma"</span>, <span class="st">"alpha"</span>]].to_dataframe().reset_index()</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>betas <span class="op">=</span> (</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    idata.posterior[<span class="st">"b"</span>]</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    .to_dataframe()</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    .reset_index()</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    .pivot(index<span class="op">=</span>[<span class="st">"chain"</span>, <span class="st">"draw"</span>], columns<span class="op">=</span><span class="st">"predictors"</span>, values<span class="op">=</span><span class="st">"b"</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    .reset_index()</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>df_posterior <span class="op">=</span> params.merge(betas, on<span class="op">=</span>[<span class="st">"chain"</span>, <span class="st">"draw"</span>])</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>df_posterior <span class="op">=</span> (</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    idata.posterior[<span class="st">"mu"</span>]</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    .to_dataframe()</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    .reset_index()</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    .merge(mtcars[[<span class="st">"cyl"</span>, <span class="st">"mpg"</span>, <span class="st">"hp"</span>]], left_on<span class="op">=</span><span class="st">"obs"</span>, right_on<span class="op">=</span>mtcars.index)</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    .merge(params, on<span class="op">=</span>[<span class="st">"chain"</span>, <span class="st">"draw"</span>])</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    .merge(betas, on<span class="op">=</span>[<span class="st">"chain"</span>, <span class="st">"draw"</span>], suffixes<span class="op">=</span>[<span class="st">""</span>, <span class="st">"_b"</span>])</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    .assign( <span class="co"># for plotting later</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>        group<span class="op">=</span><span class="kw">lambda</span> x: x.cyl.astype(<span class="bu">str</span>)</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="st">"_"</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> x.draw.astype(<span class="bu">str</span>)</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> <span class="st">"_"</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> x.chain.astype(<span class="bu">str</span>)</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>df_posterior</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">chain</th>
+<th data-quarto-table-cell-role="th">draw</th>
+<th data-quarto-table-cell-role="th">obs</th>
+<th data-quarto-table-cell-role="th">mu</th>
+<th data-quarto-table-cell-role="th">cyl</th>
+<th data-quarto-table-cell-role="th">mpg</th>
+<th data-quarto-table-cell-role="th">hp</th>
+<th data-quarto-table-cell-role="th">sigma</th>
+<th data-quarto-table-cell-role="th">alpha</th>
+<th data-quarto-table-cell-role="th">cyl_b</th>
+<th data-quarto-table-cell-role="th">hp_b</th>
+<th data-quarto-table-cell-role="th">group</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>22.463651</td>
+<td>6</td>
+<td>21.0</td>
+<td>110</td>
+<td>4.074876</td>
+<td>33.091908</td>
+<td>-0.731355</td>
+<td>-0.056728</td>
+<td>6_0_0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>22.463651</td>
+<td>6</td>
+<td>21.0</td>
+<td>110</td>
+<td>4.074876</td>
+<td>33.091908</td>
+<td>-0.731355</td>
+<td>-0.056728</td>
+<td>6_0_0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>24.890745</td>
+<td>4</td>
+<td>22.8</td>
+<td>93</td>
+<td>4.074876</td>
+<td>33.091908</td>
+<td>-0.731355</td>
+<td>-0.056728</td>
+<td>4_0_0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>22.463651</td>
+<td>6</td>
+<td>21.4</td>
+<td>110</td>
+<td>4.074876</td>
+<td>33.091908</td>
+<td>-0.731355</td>
+<td>-0.056728</td>
+<td>6_0_0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>17.313594</td>
+<td>8</td>
+<td>18.7</td>
+<td>175</td>
+<td>4.074876</td>
+<td>33.091908</td>
+<td>-0.731355</td>
+<td>-0.056728</td>
+<td>8_0_0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">127995</td>
+<td>3</td>
+<td>999</td>
+<td>27</td>
+<td>24.983972</td>
+<td>4</td>
+<td>30.4</td>
+<td>113</td>
+<td>2.481254</td>
+<td>35.978550</td>
+<td>-2.033584</td>
+<td>-0.025312</td>
+<td>4_999_3</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">127996</td>
+<td>3</td>
+<td>999</td>
+<td>28</td>
+<td>13.027543</td>
+<td>8</td>
+<td>15.8</td>
+<td>264</td>
+<td>2.481254</td>
+<td>35.978550</td>
+<td>-2.033584</td>
+<td>-0.025312</td>
+<td>8_999_3</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">127997</td>
+<td>3</td>
+<td>999</td>
+<td>29</td>
+<td>19.347468</td>
+<td>6</td>
+<td>19.7</td>
+<td>175</td>
+<td>2.481254</td>
+<td>35.978550</td>
+<td>-2.033584</td>
+<td>-0.025312</td>
+<td>6_999_3</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">127998</td>
+<td>3</td>
+<td>999</td>
+<td>30</td>
+<td>11.230399</td>
+<td>8</td>
+<td>15.0</td>
+<td>335</td>
+<td>2.481254</td>
+<td>35.978550</td>
+<td>-2.033584</td>
+<td>-0.025312</td>
+<td>8_999_3</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">127999</td>
+<td>3</td>
+<td>999</td>
+<td>31</td>
+<td>25.085220</td>
+<td>4</td>
+<td>21.4</td>
+<td>109</td>
+<td>2.481254</td>
+<td>35.978550</td>
+<td>-2.033584</td>
+<td>-0.025312</td>
+<td>4_999_3</td>
+</tr>
+</tbody>
+</table>
+
+<p>128000 rows × 12 columns</p>
+</div>
+</div>
+</div>
+<p>The critical takeaway I had from implementing this was learn to leverage <code>coords</code> and <code>dims</code> in the model container. This makes it easier to work with the data later, especially as dimensions increase (i.e.&nbsp;groups in a multilevel model).</p>
+<p>This sets the posterior to be represented in a tidy dataframe, exactly how Vincent did it. I’m really interested what ways we can cofigure the atributes with <code>PyMC</code> to make this generalize across different models and data.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>I’ve come back to this and realized adding in the parameters doesn’t make it “tidy”, and also doesn’t get used in the plots. It is still beneficial to include how to go about joining the parameters posterior draws to the data, and anyway… this post is for future me.</p>
+</div>
+</div>
+</section>
+<section id="posterior-predictive" class="level3">
+<h3 class="anchored" data-anchor-id="posterior-predictive">Posterior predictive</h3>
+<p>One way would be to do this would be to use <code>arviz.summary()</code> on the sampled posterior predictions. This is a common workflow I would do with <code>brms</code> and <code>tidybayes</code> of parsing parameter outputs name to match the group, or join an id with the original dataset.</p>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>df_predictions <span class="op">=</span> az.summary(pp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/Users/ryan/git-repos/plain-data/.venv/lib/python3.12/site-packages/arviz/stats/stats.py:1359: UserWarning: Selecting first found group: predictions</code></pre>
+</div>
+</div>
+<p>Next steps to join it with the observed data.</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>df_predictions.index <span class="op">=</span> df_predictions.index.<span class="bu">str</span>.extract(<span class="vs">r"y\[(.*?)\]"</span>)[<span class="dv">0</span>]</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>df_predictions <span class="op">=</span> df_predictions.merge(mtcars[[<span class="st">"hp"</span>, <span class="st">"cyl"</span>, <span class="st">"mpg"</span>]], on<span class="op">=</span>df_predictions.index)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>df_predictions.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">key_0</th>
+<th data-quarto-table-cell-role="th">mean</th>
+<th data-quarto-table-cell-role="th">sd</th>
+<th data-quarto-table-cell-role="th">hdi_3%</th>
+<th data-quarto-table-cell-role="th">hdi_97%</th>
+<th data-quarto-table-cell-role="th">mcse_mean</th>
+<th data-quarto-table-cell-role="th">mcse_sd</th>
+<th data-quarto-table-cell-role="th">ess_bulk</th>
+<th data-quarto-table-cell-role="th">ess_tail</th>
+<th data-quarto-table-cell-role="th">r_hat</th>
+<th data-quarto-table-cell-role="th">hp</th>
+<th data-quarto-table-cell-role="th">cyl</th>
+<th data-quarto-table-cell-role="th">mpg</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0</td>
+<td>21.596</td>
+<td>3.493</td>
+<td>14.925</td>
+<td>27.743</td>
+<td>0.056</td>
+<td>0.043</td>
+<td>3828.0</td>
+<td>3935.0</td>
+<td>1.0</td>
+<td>110</td>
+<td>6</td>
+<td>21.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>1</td>
+<td>21.500</td>
+<td>3.447</td>
+<td>15.022</td>
+<td>27.978</td>
+<td>0.058</td>
+<td>0.042</td>
+<td>3625.0</td>
+<td>3440.0</td>
+<td>1.0</td>
+<td>110</td>
+<td>6</td>
+<td>21.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>2</td>
+<td>25.127</td>
+<td>3.601</td>
+<td>18.003</td>
+<td>31.509</td>
+<td>0.065</td>
+<td>0.044</td>
+<td>3144.0</td>
+<td>3164.0</td>
+<td>1.0</td>
+<td>93</td>
+<td>4</td>
+<td>22.8</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>3</td>
+<td>21.460</td>
+<td>3.545</td>
+<td>14.611</td>
+<td>28.013</td>
+<td>0.058</td>
+<td>0.042</td>
+<td>3704.0</td>
+<td>3477.0</td>
+<td>1.0</td>
+<td>110</td>
+<td>6</td>
+<td>21.4</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>4</td>
+<td>16.369</td>
+<td>3.549</td>
+<td>9.769</td>
+<td>23.220</td>
+<td>0.058</td>
+<td>0.045</td>
+<td>3731.0</td>
+<td>3606.0</td>
+<td>1.0</td>
+<td>175</td>
+<td>8</td>
+<td>18.7</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>This worked well with the named index on <code>mtcars</code>. I’m not a fan of <code>pandas</code>, and I’ve long forgotten a lot of tips and tricks to work with the nuances of <code>pandas</code> after a couple of years of using <code>polars</code>. For future me, I’m going to include a standarad approach of working with the posterior.</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>df_posterior_predictive <span class="op">=</span> (</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    pp.predictions[<span class="st">"y"</span>]</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    .to_dataframe()</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    .reset_index()</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    .merge(mtcars[[<span class="st">"cyl"</span>, <span class="st">"hp"</span>]], left_on<span class="op">=</span><span class="st">"obs"</span>, right_on<span class="op">=</span>mtcars.index)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>df_posterior_predictive</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">chain</th>
+<th data-quarto-table-cell-role="th">draw</th>
+<th data-quarto-table-cell-role="th">obs</th>
+<th data-quarto-table-cell-role="th">y</th>
+<th data-quarto-table-cell-role="th">cyl</th>
+<th data-quarto-table-cell-role="th">hp</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>22.945508</td>
+<td>6</td>
+<td>110</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>26.375212</td>
+<td>6</td>
+<td>110</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>27.823188</td>
+<td>4</td>
+<td>93</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>26.591821</td>
+<td>6</td>
+<td>110</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>13.294181</td>
+<td>8</td>
+<td>175</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">127995</td>
+<td>3</td>
+<td>999</td>
+<td>27</td>
+<td>28.059542</td>
+<td>4</td>
+<td>113</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">127996</td>
+<td>3</td>
+<td>999</td>
+<td>28</td>
+<td>16.263795</td>
+<td>8</td>
+<td>264</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">127997</td>
+<td>3</td>
+<td>999</td>
+<td>29</td>
+<td>18.157976</td>
+<td>6</td>
+<td>175</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">127998</td>
+<td>3</td>
+<td>999</td>
+<td>30</td>
+<td>16.826422</td>
+<td>8</td>
+<td>335</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">127999</td>
+<td>3</td>
+<td>999</td>
+<td>31</td>
+<td>22.170660</td>
+<td>4</td>
+<td>109</td>
+</tr>
+</tbody>
+</table>
+
+<p>128000 rows × 6 columns</p>
+</div>
+</div>
+</div>
+<p>The data is aggregated to match the <code>az.summary()</code> output since this particular <code>geom_ribbon()</code> visualization will only need the HDI values of the posterior predictive distribution.</p>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>df_predictions <span class="op">=</span> (</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    df_posterior_predictive.groupby([<span class="st">"obs"</span>, <span class="st">"cyl"</span>, <span class="st">"hp"</span>])</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    .agg(</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>        pp_mean<span class="op">=</span>(<span class="st">"y"</span>, <span class="st">"mean"</span>),</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>        pp_min<span class="op">=</span>(<span class="st">"y"</span>, <span class="kw">lambda</span> x: x.quantile(<span class="fl">0.03</span>)),</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>        pp_max<span class="op">=</span>(<span class="st">"y"</span>, <span class="kw">lambda</span> x: x.quantile(<span class="fl">0.97</span>)),</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    .reset_index()</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>df_predictions.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">obs</th>
+<th data-quarto-table-cell-role="th">cyl</th>
+<th data-quarto-table-cell-role="th">hp</th>
+<th data-quarto-table-cell-role="th">pp_mean</th>
+<th data-quarto-table-cell-role="th">pp_min</th>
+<th data-quarto-table-cell-role="th">pp_max</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0</td>
+<td>6</td>
+<td>110</td>
+<td>21.596134</td>
+<td>15.116279</td>
+<td>28.097448</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>1</td>
+<td>6</td>
+<td>110</td>
+<td>21.500177</td>
+<td>14.988297</td>
+<td>27.965078</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>2</td>
+<td>4</td>
+<td>93</td>
+<td>25.127342</td>
+<td>18.202104</td>
+<td>31.756368</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>3</td>
+<td>6</td>
+<td>110</td>
+<td>21.460166</td>
+<td>14.782871</td>
+<td>28.293323</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>4</td>
+<td>8</td>
+<td>175</td>
+<td>16.369145</td>
+<td>9.577667</td>
+<td>23.150856</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="the-plot-is-coming-together" class="level3">
+<h3 class="anchored" data-anchor-id="the-plot-is-coming-together">The plot is coming together</h3>
+<p>Plotnine! With the grammar of graphics, we’re able to:</p>
+<ul>
+<li>use different datasets</li>
+<li>layer aesthetics together</li>
+<li>think about plots in terms of data</li>
+</ul>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># sample draws for plotting purposes</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>samples <span class="op">=</span> np.random.choice(</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    [x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">999</span>)], size<span class="op">=</span><span class="bu">int</span>(<span class="dv">5</span>), replace<span class="op">=</span><span class="va">False</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>(</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    ggplot(mtcars, aes(<span class="st">"hp"</span>, <span class="st">"mpg"</span>, color<span class="op">=</span><span class="st">"factor(cyl)"</span>, fill<span class="op">=</span><span class="st">"factor(cyl)"</span>))</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_ribbon(</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        aes(y<span class="op">=</span><span class="st">"pp_mean"</span>, ymin<span class="op">=</span><span class="st">"pp_min"</span>, ymax<span class="op">=</span><span class="st">"pp_max"</span>), data<span class="op">=</span>df_predictions, alpha<span class="op">=</span><span class="fl">0.2</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_line(</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        aes(y<span class="op">=</span><span class="st">"mu"</span>, group<span class="op">=</span><span class="st">"group"</span>),</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        data<span class="op">=</span>df_posterior[df_posterior.draw.isin(samples)],</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        alpha<span class="op">=</span><span class="fl">0.6</span>,</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> geom_point()</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(color<span class="op">=</span><span class="st">'cyl'</span>, fill<span class="op">=</span><span class="st">'cyl'</span>)</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="index_files/figure-html/cell-10-output-1.png" width="672" height="480"></p>
+</div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script type="application/vnd.jupyter.widget-state+json">
+{"state":{"1ef69e61bfe7433f8d4f2bb012d9089d":{"model_module":"@jupyter-widgets/output","model_module_version":"1.0.0","model_name":"OutputModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/output","_model_module_version":"1.0.0","_model_name":"OutputModel","_view_count":null,"_view_module":"@jupyter-widgets/output","_view_module_version":"1.0.0","_view_name":"OutputView","layout":"IPY_MODEL_9b26ad35744c4c2cb8a3a2cebe858147","msg_id":"","outputs":[{"data":{"text/html":"<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">Sampling ... <span style=\"color: #008000; text-decoration-color: #008000\">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span style=\"color: #800080; text-decoration-color: #800080\">100%</span> 0:00:00 / 0:00:00\n</pre>\n","text/plain":"Sampling ... \u001b[32m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[35m100%\u001b[0m 0:00:00 / 0:00:00\n"},"metadata":{},"output_type":"display_data"}],"tabbable":null,"tooltip":null}},"4a228deb19104defb400619b1ca78638":{"model_module":"@jupyter-widgets/base","model_module_version":"2.0.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"2.0.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"2.0.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border_bottom":null,"border_left":null,"border_right":null,"border_top":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"9b26ad35744c4c2cb8a3a2cebe858147":{"model_module":"@jupyter-widgets/base","model_module_version":"2.0.0","model_name":"LayoutModel","state":{"_model_module":"@jupyter-widgets/base","_model_module_version":"2.0.0","_model_name":"LayoutModel","_view_count":null,"_view_module":"@jupyter-widgets/base","_view_module_version":"2.0.0","_view_name":"LayoutView","align_content":null,"align_items":null,"align_self":null,"border_bottom":null,"border_left":null,"border_right":null,"border_top":null,"bottom":null,"display":null,"flex":null,"flex_flow":null,"grid_area":null,"grid_auto_columns":null,"grid_auto_flow":null,"grid_auto_rows":null,"grid_column":null,"grid_gap":null,"grid_row":null,"grid_template_areas":null,"grid_template_columns":null,"grid_template_rows":null,"height":null,"justify_content":null,"justify_items":null,"left":null,"margin":null,"max_height":null,"max_width":null,"min_height":null,"min_width":null,"object_fit":null,"object_position":null,"order":null,"overflow":null,"padding":null,"right":null,"top":null,"visibility":null,"width":null}},"ead4d1fed4994891a14eb14a95240c8f":{"model_module":"@jupyter-widgets/output","model_module_version":"1.0.0","model_name":"OutputModel","state":{"_dom_classes":[],"_model_module":"@jupyter-widgets/output","_model_module_version":"1.0.0","_model_name":"OutputModel","_view_count":null,"_view_module":"@jupyter-widgets/output","_view_module_version":"1.0.0","_view_name":"OutputView","layout":"IPY_MODEL_4a228deb19104defb400619b1ca78638","msg_id":"","outputs":[{"data":{"text/html":"<pre style=\"white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace\">                                                                                                                   \n <span style=\"font-weight: bold\"> Progress                 </span> <span style=\"font-weight: bold\"> Draws </span> <span style=\"font-weight: bold\"> Divergences </span> <span style=\"font-weight: bold\"> Step size </span> <span style=\"font-weight: bold\"> Grad evals </span> <span style=\"font-weight: bold\"> Sampling Speed  </span> <span style=\"font-weight: bold\"> Elapsed </span> <span style=\"font-weight: bold\"> Remaining </span> \n ───────────────────────────────────────────────────────────────────────────────────────────────────────────────── \n  <span style=\"color: #1f77b4; text-decoration-color: #1f77b4\">━━━━━━━━━━━━━━━━━━━━━━━━</span>   2000    0             0.11        15           1394.36 draws/s   0:00:01   0:00:00    \n  <span style=\"color: #1f77b4; text-decoration-color: #1f77b4\">━━━━━━━━━━━━━━━━━━━━━━━━</span>   2000    0             0.15        31           1411.82 draws/s   0:00:01   0:00:00    \n  <span style=\"color: #1f77b4; text-decoration-color: #1f77b4\">━━━━━━━━━━━━━━━━━━━━━━━━</span>   2000    0             0.18        15           1371.06 draws/s   0:00:01   0:00:00    \n  <span style=\"color: #1f77b4; text-decoration-color: #1f77b4\">━━━━━━━━━━━━━━━━━━━━━━━━</span>   2000    0             0.19        31           1384.25 draws/s   0:00:01   0:00:00    \n                                                                                                                   \n</pre>\n","text/plain":"                                                                                                                   \n \u001b[1m \u001b[0m\u001b[1mProgress                \u001b[0m\u001b[1m \u001b[0m \u001b[1m \u001b[0m\u001b[1mDraws\u001b[0m\u001b[1m \u001b[0m \u001b[1m \u001b[0m\u001b[1mDivergences\u001b[0m\u001b[1m \u001b[0m \u001b[1m \u001b[0m\u001b[1mStep size\u001b[0m\u001b[1m \u001b[0m \u001b[1m \u001b[0m\u001b[1mGrad evals\u001b[0m\u001b[1m \u001b[0m \u001b[1m \u001b[0m\u001b[1mSampling Speed \u001b[0m\u001b[1m \u001b[0m \u001b[1m \u001b[0m\u001b[1mElapsed\u001b[0m\u001b[1m \u001b[0m \u001b[1m \u001b[0m\u001b[1mRemaining\u001b[0m\u001b[1m \u001b[0m \n ───────────────────────────────────────────────────────────────────────────────────────────────────────────────── \n  \u001b[38;2;31;119;180m━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m   2000    0             0.11        15           1394.36 draws/s   0:00:01   0:00:00    \n  \u001b[38;2;31;119;180m━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m   2000    0             0.15        31           1411.82 draws/s   0:00:01   0:00:00    \n  \u001b[38;2;31;119;180m━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m   2000    0             0.18        15           1371.06 draws/s   0:00:01   0:00:00    \n  \u001b[38;2;31;119;180m━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m   2000    0             0.19        31           1384.25 draws/s   0:00:01   0:00:00    \n                                                                                                                   \n"},"metadata":{},"output_type":"display_data"}],"tabbable":null,"tooltip":null}}},"version_major":2,"version_minor":0}
+</script>
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

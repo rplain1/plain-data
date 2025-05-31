@@ -10,5 +10,17 @@
   },
   "about.qmd": {
     "about.html": "29a81768"
+  },
+  "posts/20250531-reticulate-pymc/index.qmd": {
+    "index.html": "b3deda2a"
+  },
+  "posts/20250514-pymc-gog/index.qmd": {
+    "index.html": "9dc75a16"
+  },
+  "posts/2025-05-31-reticulate-pymc/index.qmd": {
+    "index.html": "6807265a"
+  },
+  "posts/2025-05-14-tidy-pymc/index.qmd": {
+    "index.html": "1b7d0e16"
   }
 }

@@ -1,0 +1,252 @@
+---
+title: "Reticulate and PyMC"
+author: "Ryan Plain"
+date: "2025-05-31"
+categories: [Bayesian, PyMC, Reticulate]
+df-print: kable
+---
+
+## Bayesian models (Python) + grammar of graphics (R) = ❤️
+
+This is a nod to the title of [Benjamin T. Vincent's blog post](https://drbenvincent.github.io/posts/mcmc_grammar_of_graphics.html), who inspired me to dive further into PyMC. The reason I started looking into using the grammar of graphics with PyMC, was to reduce a barrier and emulate **tidyverse** as much as possible. What if instead we just... use R and PyMC?
+
+In my [previous post](../2025-05-14-tidy-pymc/), I used the Grammar of Graphics to vizualize the posterior distributions from a PyMC model. This required extracting the data from the `az.InferenceData` object, and converting to a dataframe to work with.
+
+I recently got a chance to use the [new version of reticulate](https://posit.co/blog/reticulate-1-41/), which uses `uv` to manage the Python environment used in an R session, and fell in love. From the post:
+
+> with `py_require()`, Reticulate will automatically create and manage Python environments behind the scenes so you don’t have to.
+
+I'm a huge fan of [uv](https://docs.astral.sh/uv/), and how the developers of Reticulate integrated it really simplifies the process of bringing Python and R together.
+
+<div class="tenor-gif-embed" data-postid="11478682" data-share-method="host" data-aspect-ratio="1.625" data-width="100%"><a href="https://tenor.com/view/why-not-both-why-not-take-both-gif-11478682">Why Not Both Take Both GIF</a>from <a href="https://tenor.com/search/why+not+both-gifs">Why Not Both GIFs</a></div> <script type="text/javascript" async src="https://tenor.com/embed.js"></script>
+
+## Workflow
+
+### Set up the environment
+
+Load up `reticulate` and the `tidyverse`.
+
+::: {.callout-note collapse="true"}
+I set the environment variable for `RETICULATE_PYTHON` to force Reticulate to use an ephemeral environment. I didn't have to do this in an interactive session, but this blog already had a uv proejct setup - and I didn't want it to be used. This could also be configured outside the script or workflow.
+:::
+
+```{r}
+#| warning: false
+
+Sys.setenv(RETICULATE_PYTHON = "managed")
+library(reticulate)
+library(tidyverse)
+mtcars |>
+  head()
+```
+
+The first difference in this workflow is that `mtcars` is a dataset available by default. It can be accessed directly within an R session.
+
+### Reticulate and uv environment
+
+I've listend to enough presentations and interviews from [Charlie Marsh](https://github.com/charliermarsh) to know I can't do it justice to explain how `uv` works. An oversimplification of `uv` is that it centralizes package downloads, and then distributes them when needed for new isolated enviornments, after resolving the dependencies. The key difference is that there isn't reinstallation of packages needed across environements.
+
+Using `py_require()` will specify which packages are needed and how to create a virtual environment.
+
+```{r}
+py_require('pymc')
+py_config()
+```
+
+You can see that we have an ephemeral python environment created with `uv` and `reticulate`. This is really neat! Everytime I render this document, it will cache a new virtual environment for `reticulate` to use, but because of `uv` I only had to download `pymc` the first time.
+
+Specifying the `pymc` dependency actually built a Python environment with 63 packages, all mapped and configured with `uv`. I've shown some of the most well-known dependencies of `pymc`.
+
+```{r}
+# > py_list_packages() |> dim()
+# [1] 63  3
+
+py_list_packages() |> dplyr::filter(package %in% c('pandas', 'scipy', 'matplotlib', 'arviz'))
+```
+
+
+
+### Set up the data
+
+In my last post, I incorrectly implemented the formula for the interaction model `mpg ~ hp * cyl`. I needed to explictly add in a variable so that we have `mpg ~ hp + cyl + hp:cyl`. To correct that, I'v added a variable that `lm()` or `brms` would typically do under the hood. Additionally added in centering the variables to help prevent divergece issues.
+
+A significant use case for me to use R in the workflow is to be able to do the data wrangling with the `tidyverse` to set up the data to input into the model. In this example, I used `dplyr::mutate()` to scale the variables. You can imagine other types of transformations, filters, and joins that could be dropped in here.
+
+::: {.callout-note collapse="true"}
+([StandardScaler](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html) does a fine job of this in the python ecosytem, so scaling isn't necessarily the point)
+:::
+
+```{r}
+
+mtcars_scaled <- mtcars %>%
+  mutate(
+    hp_c = scale(hp)[, 1], # scale() keeps attributes that need to be removed
+    cyl_c = scale(cyl)[, 1],
+    hp_cyl = hp_c * cyl_c
+  )
+```
+
+### R to Python
+
+```{r}
+pandas_mtcars <- r_to_py(mtcars_scaled)
+print(class(mtcars_scaled))
+print(class(pandas_mtcars))
+```
+
+There are now two datasets:
+
+- **mtcars_scaled**: an R `data.frame()` object
+- **pandas_mtcars**: a Python `pandas.DataFrame()` object
+
+The pandas dataframe can be passed into PyMC and begin the Python portion of the workflow.
+
+::: {.callout-warning}
+Integrating Python and R has come a long way, and is incredibly accessible. There are some edge cases and things to be aware of when converting data and objects between the two. [This post by Karin Hrovatin](https://hrovatin.github.io/posts/r_python/) is one of the best consolidated sources of information to learn from.
+:::
+
+
+### PyMC Model
+
+The python sytax would look very similar to this, only now instead of using objects with dot notation, we access methods and attributes with the `$` character. If you are purely a python developer, this might look obscene. I choose to put up with this quirkyness because I find working with dataframes and plotting in R worth the trade off.
+
+#### Python
+
+Reviewing the Python model from before:
+
+```{python}
+#| eval: false
+with pm.Model(
+    coords={"obs": mtcars.index, "predictors": ['hp', 'cyl']}
+) as mod:
+
+    X = pm.Data("X", mtcars[["hp", "cyl"]], dims=("obs", "predictors"))
+
+    alpha = pm.StudentT("alpha", nu=3, mu=19.2, sigma=5.4)
+    sigma = pm.HalfStudentT("sigma", nu=3, sigma=5.54)
+    beta = pm.Normal("b", mu=0, sigma=1, dims='predictors')
+
+    mu = pm.Deterministic("mu", alpha + pm.math.dot(X, beta), dims='obs')
+
+    y = pm.Normal(
+        "y",
+        mu=mu,
+        sigma=sigma,
+        shape=X.shape[0],
+        observed=mtcars["mpg"],
+        dims="obs",
+    )
+
+    idata = pm.sample(random_seed=527)
+
+# sample posterior predictive
+with mod as model:
+    pp = pm.sample_posterior_predictive(idata, predictions=True)
+```
+
+#### R
+
+Now the same thing, but using `reticulate` to interface with `pymc`. I also add in the new column `hp_cyl` for the interaction term.
+
+```{r}
+# import pymc as pm
+pm <- import('pymc', convert = FALSE)
+
+mod <- pm$Model(
+  coords = list(
+    car = pandas_mtcars$index,
+    predictors = c('hp', 'cyl', 'hp_cyl')
+  )
+)
+
+# with pm.Model() as model:
+# ...
+with(mod, {
+  X <- pm$Data('X', pandas_mtcars$loc[, c('hp', 'cyl', 'hp_cyl')])
+
+  alpha <- pm$StudentT("alpha", nu = 3, mu = 19.2, sigma = 5.4)
+  sigma <- pm$HalfStudentT("sigma", nu = 3, sigma = 5.54)
+  beta <- pm$Normal("b", mu = 0, sigma = 1, dims = 'predictors')
+  mu <- pm$Deterministic("mu", alpha + pm$math$dot(X, beta), dims = 'car')
+
+  y <- pm$Normal(
+    "y",
+    mu = mu,
+    sigma = sigma,
+    shape = X$shape[0], # python index
+    observed = pandas_mtcars$mpg,
+    dims = "car",
+  )
+  # using a single core and chain because of Quarto page rendering,
+  # normally this would be 4 chains
+  idata = pm$sample(random_seed = 527L, cores = 1L, chains=1L)
+})
+
+with(mod, {
+  pp = pm$sample_posterior_predictive(idata, predictions = TRUE)
+})
+```
+
+
+As mentioned earlier, there are some caveats to understand when moving between the two languages. There were definitely a few gotcha's when I was implementing this:
+
+- `pandas_mtcars$loc[, c('hp', 'cyl', 'hp_cyl')]`: this used the `.loc` pandas method but with the R `data.frame()` indexing syntax.
+- `X$shape[0]`: Python is 0-based indexed while R is 1-based. Because this is a Python object, it can be indexed with 0. (I agree this is a bit weird to combine 😅)
+- `random_seed = 527L`: Integer types need to be specified with the R syntax of adding `L` at the end of it.
+
+### Posterior
+
+Translating the PyMC model's `az.InferenceData` object and posterior predictions to dataframes is still the same, with the addition of `py_to_r()` to convert a pandas dataframe to R.
+
+
+```{r}
+# posterior mu
+df_posterior <- idata$posterior$mu$to_dataframe()$reset_index() |>
+  py_to_r() |>
+  as_tibble() |>
+  left_join(rownames_to_column(mtcars, 'car')) |> # R mtcars has rownames for the car
+  mutate(group = paste0(chain, draw, cyl)) # for a particular plot later
+
+# posterior predictions of mpg
+df_predictions <- pp$predictions$to_dataframe()$reset_index() |>
+  py_to_r() |>
+  as_tibble() |>
+  left_join(rownames_to_column(mtcars, "car"))
+
+```
+
+### Plot
+
+Now for my favorite part of this, plot with **ggplot2** and use [tidybayes](https://mjskay.github.io/tidybayes/reference/add_predicted_draws.html) directly!
+
+
+```{r}
+
+df_predictions |>
+  ggplot(aes(hp, y, color = as.factor(cyl))) +
+  tidybayes::stat_lineribbon(.width = c(.99, .95, .8, .5), alpha = 0.25) +
+  geom_line(
+    aes(y = mu, group = group),
+    data = df_posterior |> filter(draw %in% round(seq(5, 900, length.out = 5))),
+    alpha = 0.38
+  ) +
+  geom_point(aes(y = mpg), data = mtcars, shape = 21, size = 2, stroke = 1) +
+  scale_fill_brewer(palette = "Greys") +
+  theme_light(base_size = 12) +
+  guides(fill = 'none') +
+  labs(
+    x = 'hp',
+    y = 'mpg',
+    color = 'cyl'
+  )
+
+```
+
+
+## Rython
+
+This is an opinionated way of using PyMC and the grammar of graphics together to say the least. I really do like PyMC, but I prefer to settle on the data and other parts of the model iteration process with R if possible. There is potential for `reticulate::py_run_string()` as well, if you wanted to be able to drop it directly back into a pure Python environment. Access to an LLM would also be able to easily reformat the R PyMC model to Python or at least get it most of the way there.
+
+Overall really impressed with the state of combing R and Python together. When I started my career, there weren't a ton of options outside of doing I/O with csv's to bring them together. Now in the same process I can use a full feature Python library for probabilistic programming, and then use non-standard evaluation for data transfromation and visualization in R.
+
+A typo I had in this at one point was Rython, and given my name.. and I quite like it.
