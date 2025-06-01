@@ -4,6 +4,7 @@ author: "Ryan Plain"
 date: "2025-05-14"
 categories: [Bayesian, PyMC, Plotnine]
 engine: jupyter
+description: Grammar of Graphics with PyMC
 ---
 
 ## Tidybayes in Python would be cool

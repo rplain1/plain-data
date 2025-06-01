@@ -8,8 +8,9 @@
 
 <meta name="author" content="Ryan Plain">
 <meta name="dcterms.date" content="2025-05-31">
+<meta name="description" content="Using Reticulate and PyMC, wonderfully managed with uv">
 
-<title>Just Plain Data - Reticulate and PyMC</title>
+<title>Just Plain Data - Rython</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -142,8 +143,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Reticulate and PyMC</h1>
-                                <div class="quarto-categories">
+      <h1 class="title">Rython</h1>
+                  <div>
+        <div class="description">
+          Using Reticulate and PyMC, wonderfully managed with uv
+        </div>
+      </div>
+                          <div class="quarto-categories">
                 <div class="quarto-category">Bayesian</div>
                 <div class="quarto-category">PyMC</div>
                 <div class="quarto-category">Reticulate</div>
@@ -427,7 +433,7 @@ Note
 </div>
 <div id="callout-2" class="callout-2-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p>(<a href="https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html">StandardScaler</a> does a fine job of this in the python ecosytem, so scaling isn’t necessarily the point)</p>
+<p><a href="https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html">StandardScaler</a> does a fine job of this in the python ecosytem, so scaling isn’t necessarily the point.</p>
 </div>
 </div>
 </div>
@@ -552,7 +558,7 @@ Warning
                               Step      Grad      Sampli…                       
   Progre…   Draws   Diverg…   size      evals     Speed     Elapsed   Remaini…  
  ────────────────────────────────────────────────────────────────────────────── 
-  ━━━━━━━   2000    0         0.19      15        1449.29   0:00:01   0:00:00   
+  ━━━━━━━   2000    0         0.19      15        1458.41   0:00:01   0:00:00   
                                                   draws/s                       
                                                                                 </code></pre>
 </div>
@@ -625,7 +631,7 @@ Warning
 <h2 class="anchored" data-anchor-id="rython">Rython</h2>
 <p>This is an opinionated way of using PyMC and the grammar of graphics together to say the least. I really do like PyMC, but I prefer to settle on the data and other parts of the model iteration process with R if possible. There is potential for <code>reticulate::py_run_string()</code> as well, if you wanted to be able to drop it directly back into a pure Python environment. Access to an LLM would also be able to easily reformat the R-PyMC model to Python, or at least get it most of the way there.</p>
 <p>Overall really impressed with the state of combing R and Python together. When I started my career, there weren’t a ton of options outside of doing a ton of I/O with csv’s to bring them together. Now within the same process I can use a full-feature Python probablistic programming library, with non-standard evaluation for data transfromation and visualization in R.</p>
-<p>A typo I had in this at one point was Rython, and given my name.. and I quite like it.</p>
+<p>A typo I had in this at one point was <em>Rython</em>, and given my name.. and I quite like it.</p>
 
 
 </section>

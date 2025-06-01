@@ -1,9 +1,10 @@
 ---
-title: "Reticulate and PyMC"
+title: "Rython"
 author: "Ryan Plain"
 date: "2025-05-31"
 categories: [Bayesian, PyMC, Reticulate]
 df-print: kable
+description: Using Reticulate and PyMC, wonderfully managed with uv
 ---
 
 ## Bayesian models (Python) + grammar of graphics (R) = ❤️
@@ -73,7 +74,7 @@ In my last post, I incorrectly implemented the formula for the interaction model
 A significant use case for me to use R in the workflow is to be able to do the data wrangling with the `tidyverse` to set up the data to input into the model. In this example, I used `dplyr::mutate()` to scale the variables. You can imagine other types of transformations, filters, and joins that could be dropped in here.
 
 ::: {.callout-note collapse="true"}
-([StandardScaler](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html) does a fine job of this in the python ecosytem, so scaling isn't necessarily the point)
+[StandardScaler](https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html) does a fine job of this in the python ecosytem, so scaling isn't necessarily the point.
 :::
 
 ```{r}
@@ -249,4 +250,4 @@ This is an opinionated way of using PyMC and the grammar of graphics together to
 
 Overall really impressed with the state of combing R and Python together. When I started my career, there weren't a ton of options outside of doing a ton of I/O with csv's to bring them together. Now within the same process I can use a full-feature Python probablistic programming library, with non-standard evaluation for data transfromation and visualization in R.
 
-A typo I had in this at one point was Rython, and given my name.. and I quite like it.
+A typo I had in this at one point was *Rython*, and given my name.. and I quite like it.
