@@ -8,7 +8,7 @@
 
 <meta name="author" content="Ryan Plain">
 <meta name="dcterms.date" content="2025-05-31">
-<meta name="description" content="Using Reticulate and PyMC, wonderfully managed with uv">
+<meta name="description" content="Bayesian Modeling with PyMC and Reticulate in R.">
 
 <title>Just Plain Data - Rython</title>
 <style>
@@ -146,7 +146,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <h1 class="title">Rython</h1>
                   <div>
         <div class="description">
-          Using Reticulate and PyMC, wonderfully managed with uv
+          Bayesian Modeling with PyMC and Reticulate in R.
         </div>
       </div>
                           <div class="quarto-categories">
@@ -190,17 +190,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="bayesian-models-python-grammar-of-graphics-r" class="level2">
 <h2 class="anchored" data-anchor-id="bayesian-models-python-grammar-of-graphics-r">Bayesian models (Python) + grammar of graphics (R) = ❤️</h2>
-<p>This is a nod to the title of <a href="https://drbenvincent.github.io/posts/mcmc_grammar_of_graphics.html">Benjamin T. Vincent’s blog post</a>, who inspired me to dive further into PyMC. The reason I started looking into using the grammar of graphics with PyMC, was to reduce a barrier and emulate <strong>tidyverse</strong> as much as possible. What if instead we just… use R and PyMC?</p>
-<p>In my <a href="../2025-05-14-tidy-pymc/">previous post</a>, I used the Grammar of Graphics to vizualize the posterior distributions from a PyMC model. This required extracting the data from the <code>az.InferenceData</code> object, and converting to a dataframe to work with.</p>
+<p>This is a nod to the title of <a href="https://drbenvincent.github.io/posts/mcmc_grammar_of_graphics.html">Benjamin T. Vincent’s blog post</a>, who inspired me to dive further into PyMC. The reason I started looking into using the grammar of graphics with PyMC, was to reduce a barrier and emulate <strong>tidyverse</strong> as much as possible. What if I instead just… use R and PyMC?</p>
+<p>In my <a href="../2025-05-14-tidy-pymc/">previous post</a>, I used the Grammar of Graphics to vizualize the posterior distributions from a PyMC model. This required extracting the data from the <code>az.InferenceData</code> object, and organizing into a tidy dataframe to work with.</p>
 <p>I recently got a chance to use the <a href="https://posit.co/blog/reticulate-1-41/">new version of reticulate</a>, which uses <code>uv</code> to manage the Python environment used in an R session, and fell in love. From the post:</p>
 <blockquote class="blockquote">
 <p>with <code>py_require()</code>, Reticulate will automatically create and manage Python environments behind the scenes so you don’t have to.</p>
 </blockquote>
-<p>I’m a huge fan of <a href="https://docs.astral.sh/uv/">uv</a>, and how the developers of Reticulate integrated it really simplifies the process of bringing Python and R together.</p>
-<div class="tenor-gif-embed" data-postid="11478682" data-share-method="host" data-aspect-ratio="1.625" data-width="100%">
-<a href="https://tenor.com/view/why-not-both-why-not-take-both-gif-11478682">Why Not Both Take Both GIF</a>from <a href="https://tenor.com/search/why+not+both-gifs">Why Not Both GIFs</a>
-</div>
-<script type="text/javascript" async="" src="https://tenor.com/embed.js"></script>
+<p>This workflow was available prior to the new version of Reticulate, but it is now incredibly simplified with <code>uv</code>.</p>
 </section>
 <section id="workflow" class="level2">
 <h2 class="anchored" data-anchor-id="workflow">Workflow</h2>
@@ -352,12 +348,12 @@ Note
 </div>
 </div>
 </div>
-<p>The first difference in this workflow is that <code>mtcars</code> is a dataset available by default. It can be accessed directly within an R session.</p>
+<p>The first difference in this workflow is that <code>mtcars</code> is a dataset available by default, and can be accessed directly.</p>
 </section>
 <section id="reticulate-and-uv-environment" class="level3">
 <h3 class="anchored" data-anchor-id="reticulate-and-uv-environment">Reticulate and uv environment</h3>
-<p>I’ve listend to enough presentations and interviews from <a href="https://github.com/charliermarsh">Charlie Marsh</a> to know I can’t do it justice to explain how <code>uv</code> works. An oversimplification of <code>uv</code> is that it centralizes package downloads, and then distributes them when needed for new isolated enviornments, after resolving the dependencies. The key difference is that there isn’t reinstallation of packages needed across environements.</p>
-<p>Using <code>py_require()</code> will specify which packages are needed and how to create a virtual environment.</p>
+<p>I’ve listend to enough presentations and interviews from Charlie Marsh<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> to know I can’t fully explain what <code>uv</code> does. it centralizes downloads and resolves dependencies once, so you don’t reinstall packages across environments.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
+<p>Using <code>reticulate::py_require()</code> will specify which packages are needed and how to create a virtual environment.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">py_require</span>(<span class="st">'pymc'</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">py_config</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -373,8 +369,7 @@ numpy_version:  2.2.6
 NOTE: Python version was forced by py_require()</code></pre>
 </div>
 </div>
-<p>You can see that we have an ephemeral python environment created with <code>uv</code> and <code>reticulate</code>. This is really neat! Everytime I render this document, it will cache a new virtual environment for <code>reticulate</code> to use, but because of <code>uv</code> I only had to download <code>pymc</code> the first time.</p>
-<p>Specifying the <code>pymc</code> dependency actually built a Python environment with 63 packages, all mapped and configured with <code>uv</code>. I’ve shown some of the most well-known dependencies of <code>pymc</code>.</p>
+<p>You can see that we have an ephemeral python environment created with <code>uv</code> to use with <code>reticulate</code>. This is really neat! Everytime I render this document, it will cache a new virtual environment for <code>reticulate</code> to use. Thanks to uv’s global package cache, I only had to download pymc once—even across multiple isolated environments.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># &gt; py_list_packages() |&gt; dim()</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># [1] 63  3</span></span>
@@ -416,27 +411,12 @@ NOTE: Python version was forced by py_require()</code></pre>
 </div>
 </div>
 </div>
+<p>Specifying the <code>pymc</code> dependency actually built a Python environment with 63 packages, all mapped and configured with <code>uv</code>. I’ve shown some of the most well-known dependencies of <code>pymc</code>.</p>
 </section>
 <section id="set-up-the-data" class="level3">
 <h3 class="anchored" data-anchor-id="set-up-the-data">Set up the data</h3>
-<p>In my last post, I incorrectly implemented the formula for the interaction model <code>mpg ~ hp * cyl</code>. I needed to explictly add in a variable so that we have <code>mpg ~ hp + cyl + hp:cyl</code>. To correct that, I’v added a variable that <code>lm()</code> or <code>brms</code> would typically do under the hood. Additionally added in centering the variables to help prevent divergece issues.</p>
-<p>A significant use case for me to use R in the workflow is to be able to do the data wrangling with the <code>tidyverse</code> to set up the data to input into the model. In this example, I used <code>dplyr::mutate()</code> to scale the variables. You can imagine other types of transformations, filters, and joins that could be dropped in here.</p>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
-</div>
-<div id="callout-2" class="callout-2-contents callout-collapse collapse">
-<div class="callout-body-container callout-body">
-<p><a href="https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html">StandardScaler</a> does a fine job of this in the python ecosytem, so scaling isn’t necessarily the point.</p>
-</div>
-</div>
-</div>
+<p>In my last post, I incorrectly implemented the formula for the interaction model <code>mpg ~ hp * cyl</code>. I needed to explictly add in a variable so that we have <code>mpg ~ hp + cyl + hp:cyl</code>. To correct that, I’ve added a variable that <code>lm()</code> or <code>brms</code> would typically do under the hood. Additionally added in centering the variables to help prevent divergece issues.</p>
+<p>A use case for me to use R in the workflow is to be able to do the initial data wrangling with the <code>tidyverse</code>. In this example, I used <code>dplyr::mutate()</code> to scale the variables. You can imagine other types of transformations, filters, and joins that could be dropped in here.<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>mtcars_scaled <span class="ot">&lt;-</span> mtcars <span class="sc">%&gt;%</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
@@ -464,8 +444,8 @@ Note
 </div>
 <p>There are now two datasets:</p>
 <ul>
-<li><strong>mtcars_scaled</strong>: an R <code>data.frame()</code> object</li>
-<li><strong>pandas_mtcars</strong>: a Python <code>pandas.DataFrame()</code> object</li>
+<li><strong><code>mtcars_scaled</code></strong> is an R <code>data.frame()</code> object</li>
+<li><strong><code>pandas_mtcars</code></strong> is a Python <code>pandas.DataFrame()</code> object</li>
 </ul>
 <p>The pandas dataframe can be passed into PyMC and begin the Python portion of the workflow.</p>
 <div class="callout callout-style-default callout-warning callout-titled">
@@ -485,41 +465,40 @@ Warning
 <section id="pymc-model" class="level3">
 <h3 class="anchored" data-anchor-id="pymc-model">PyMC Model</h3>
 <p>The python sytax would look very similar to this, only now instead of using objects with dot notation, we access methods and attributes with the <code>$</code> character. If you are purely a python developer, this might look obscene. I choose to put up with this quirkyness because I find working with dataframes and plotting in R worth the trade off.</p>
-<section id="python" class="level4">
-<h4 class="anchored" data-anchor-id="python">Python</h4>
-<p>Reviewing the Python model from before:</p>
+<p>Python code from before.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> pm.Model(</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    coords<span class="op">=</span>{<span class="st">"obs"</span>: mtcars.index, <span class="st">"predictors"</span>: [<span class="st">'hp'</span>, <span class="st">'cyl'</span>]}</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>) <span class="im">as</span> mod:</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> pm.Data(<span class="st">"X"</span>, mtcars[[<span class="st">"hp"</span>, <span class="st">"cyl"</span>]], dims<span class="op">=</span>(<span class="st">"obs"</span>, <span class="st">"predictors"</span>))</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    alpha <span class="op">=</span> pm.StudentT(<span class="st">"alpha"</span>, nu<span class="op">=</span><span class="dv">3</span>, mu<span class="op">=</span><span class="fl">19.2</span>, sigma<span class="op">=</span><span class="fl">5.4</span>)</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    sigma <span class="op">=</span> pm.HalfStudentT(<span class="st">"sigma"</span>, nu<span class="op">=</span><span class="dv">3</span>, sigma<span class="op">=</span><span class="fl">5.54</span>)</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    beta <span class="op">=</span> pm.Normal(<span class="st">"b"</span>, mu<span class="op">=</span><span class="dv">0</span>, sigma<span class="op">=</span><span class="dv">1</span>, dims<span class="op">=</span><span class="st">'predictors'</span>)</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    mu <span class="op">=</span> pm.Deterministic(<span class="st">"mu"</span>, alpha <span class="op">+</span> pm.math.dot(X, beta), dims<span class="op">=</span><span class="st">'obs'</span>)</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    y <span class="op">=</span> pm.Normal(</span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">"y"</span>,</span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        mu<span class="op">=</span>mu,</span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        sigma<span class="op">=</span>sigma,</span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        shape<span class="op">=</span>X.shape[<span class="dv">0</span>],</span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>        observed<span class="op">=</span>mtcars[<span class="st">"mpg"</span>],</span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>        dims<span class="op">=</span><span class="st">"obs"</span>,</span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>    idata <span class="op">=</span> pm.sample(random_seed<span class="op">=</span><span class="dv">527</span>)</span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a><span class="co"># sample posterior predictive</span></span>
-<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> mod <span class="im">as</span> model:</span>
-<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>    pp <span class="op">=</span> pm.sample_posterior_predictive(idata, predictions<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">#|</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> pm.Model(</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    coords<span class="op">=</span>{<span class="st">"obs"</span>: mtcars.index, <span class="st">"predictors"</span>: [<span class="st">'hp'</span>, <span class="st">'cyl'</span>]}</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>) <span class="im">as</span> mod:</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> pm.Data(<span class="st">"X"</span>, mtcars[[<span class="st">"hp"</span>, <span class="st">"cyl"</span>]], dims<span class="op">=</span>(<span class="st">"obs"</span>, <span class="st">"predictors"</span>))</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    alpha <span class="op">=</span> pm.StudentT(<span class="st">"alpha"</span>, nu<span class="op">=</span><span class="dv">3</span>, mu<span class="op">=</span><span class="fl">19.2</span>, sigma<span class="op">=</span><span class="fl">5.4</span>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    sigma <span class="op">=</span> pm.HalfStudentT(<span class="st">"sigma"</span>, nu<span class="op">=</span><span class="dv">3</span>, sigma<span class="op">=</span><span class="fl">5.54</span>)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    beta <span class="op">=</span> pm.Normal(<span class="st">"b"</span>, mu<span class="op">=</span><span class="dv">0</span>, sigma<span class="op">=</span><span class="dv">1</span>, dims<span class="op">=</span><span class="st">'predictors'</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    mu <span class="op">=</span> pm.Deterministic(<span class="st">"mu"</span>, alpha <span class="op">+</span> pm.math.dot(X, beta), dims<span class="op">=</span><span class="st">'obs'</span>)</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    y <span class="op">=</span> pm.Normal(</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">"y"</span>,</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        mu<span class="op">=</span>mu,</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        sigma<span class="op">=</span>sigma,</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>        shape<span class="op">=</span>X.shape[<span class="dv">0</span>],</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>        observed<span class="op">=</span>mtcars[<span class="st">"mpg"</span>],</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        dims<span class="op">=</span><span class="st">"obs"</span>,</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    idata <span class="op">=</span> pm.sample(random_seed<span class="op">=</span><span class="dv">527</span>)</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="co"># sample posterior predictive</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> mod <span class="im">as</span> model:</span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>    pp <span class="op">=</span> pm.sample_posterior_predictive(idata, predictions<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
-</section>
-<section id="r" class="level4">
-<h4 class="anchored" data-anchor-id="r">R</h4>
-<p>Now the same thing, but using <code>reticulate</code> to interface with <code>pymc</code>. I also add in the new column <code>hp_cyl</code> for the interaction term.</p>
+<p>Now the same thing, but using <code>reticulate</code> to interface with <code>pymc</code>. I’ve also added in the new column <code>hp_cyl</code> for the interaction term.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># import pymc as pm</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>pm <span class="ot">&lt;-</span> <span class="fu">import</span>(<span class="st">'pymc'</span>, <span class="at">convert =</span> <span class="cn">FALSE</span>)</span>
@@ -558,7 +537,7 @@ Warning
                               Step      Grad      Sampli…                       
   Progre…   Draws   Diverg…   size      evals     Speed     Elapsed   Remaini…  
  ────────────────────────────────────────────────────────────────────────────── 
-  ━━━━━━━   2000    0         0.19      15        1458.41   0:00:01   0:00:00   
+  ━━━━━━━   2000    0         0.19      15        1430.95   0:00:01   0:00:00   
                                                   draws/s                       
                                                                                 </code></pre>
 </div>
@@ -569,13 +548,15 @@ Warning
 <pre><code>Sampling ... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00 / 0:00:00</code></pre>
 </div>
 </div>
-<p>As mentioned earlier, there are some caveats to understand when moving between the two languages. There were definitely a few gotcha’s when I was implementing this:</p>
-<ul>
-<li><code>pandas_mtcars$loc[, c('hp', 'cyl', 'hp_cyl')]</code>: this used the <code>.loc</code> pandas method but with the R <code>data.frame()</code> indexing syntax.</li>
-<li><code>X$shape[0]</code>: Python is 0-based indexed while R is 1-based. Because this is a Python object, it can be indexed with 0. (I agree this is a bit weird to combine 😅)</li>
-<li><code>random_seed = 527L</code>: Integer types need to be specified with the R syntax of adding <code>L</code> at the end of it.</li>
-</ul>
 </section>
+<section id="gotchas" class="level3">
+<h3 class="anchored" data-anchor-id="gotchas">Gotchas</h3>
+<p>Some quirks to be aware of:</p>
+<ul>
+<li><p><strong><code>pandas_mtcars$loc[, c('hp', 'cyl', 'hp_cyl')]</code></strong> Uses the <code>.loc</code> method from pandas, but with R-style dataframe indexing syntax.</p></li>
+<li><p><strong><code>X$shape[0]</code></strong> Python is 0-based indexed while R is 1-based. Since <code>X</code> is a Python object, we use <code>0</code> for indexing.</p></li>
+<li><p><strong><code>random_seed = 527L</code></strong> Integer literals in R require <code>L</code> to indicate an integer type, which Python expects here.</p></li>
+</ul>
 </section>
 <section id="posterior" class="level3">
 <h3 class="anchored" data-anchor-id="posterior">Posterior</h3>
@@ -630,13 +611,21 @@ Warning
 <section id="rython" class="level2">
 <h2 class="anchored" data-anchor-id="rython">Rython</h2>
 <p>This is an opinionated way of using PyMC and the grammar of graphics together to say the least. I really do like PyMC, but I prefer to settle on the data and other parts of the model iteration process with R if possible. There is potential for <code>reticulate::py_run_string()</code> as well, if you wanted to be able to drop it directly back into a pure Python environment. Access to an LLM would also be able to easily reformat the R-PyMC model to Python, or at least get it most of the way there.</p>
-<p>Overall really impressed with the state of combing R and Python together. When I started my career, there weren’t a ton of options outside of doing a ton of I/O with csv’s to bring them together. Now within the same process I can use a full-feature Python probablistic programming library, with non-standard evaluation for data transfromation and visualization in R.</p>
-<p>A typo I had in this at one point was <em>Rython</em>, and given my name.. and I quite like it.</p>
+<p>I’m genuinely impressed by how far integrating R and Python has come. When I started my career, you had to do a bunch of clunky I/O to get features of both languages. Now, in a single workflow, I can use a full-featured Python probabilistic programming library alongside R’s non-standard evaluation for data transformation and visualization.</p>
+<p>A typo I had in drafting this at one point was <em>Rython</em>, and given my name… and I quite like it.</p>
 
 
 </section>
 
-</main> <!-- /main -->
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Charlie Marsh is the lead developer of Ruff and discussed <code>uv</code> in multiple talks.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p><code>uv</code> is a Rust-based Python package manager that installs dependencies in a global cache and reuses them in isolated environments, improving reproducibility and speed. For more, see the <a href="https://docs.astral.sh/uv/">uv docs</a>.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>StandardScaler from sci-kit learn does this in the python, so scaling isn’t necessarily the point.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
