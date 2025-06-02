@@ -190,12 +190,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="bayesian-models-python-grammar-of-graphics-r" class="level2">
 <h2 class="anchored" data-anchor-id="bayesian-models-python-grammar-of-graphics-r">Bayesian models (Python) + grammar of graphics (R) = ❤️</h2>
-<p>This is a nod to the title of <a href="https://drbenvincent.github.io/posts/mcmc_grammar_of_graphics.html">Benjamin T. Vincent’s blog post</a>, who inspired me to dive further into PyMC. The reason I started looking into using the grammar of graphics with PyMC, was to reduce a barrier and emulate <strong>tidyverse</strong> as much as possible. What if I instead just… use R and PyMC?</p>
-<p>This is also somewhat of a continuation of my <a href="../2025-05-14-tidy-pymc/">last post</a>, where I used the grammar of graphics to vizualize the posterior distributions from a PyMC model. This required extracting the data from the <code>arviz.InferenceData</code> object, and organizing it into a tidy dataframe to work with.</p>
+<p>The heading is a nod to the title of <a href="https://drbenvincent.github.io/posts/mcmc_grammar_of_graphics.html">Benjamin T. Vincent’s blog post</a> about using the grammar-of-graphics with PyMC, and what inspired me to look into different ways of working with PyMC.</p>
+<p>This is also somewhat of a continuation of my <a href="../2025-05-14-tidy-pymc/">previous post</a>, where I used the grammar-of-graphics to vizualize the posterior distributions from a PyMC model. Accomplishing this built on Vincent’s work by extracting the data from the high dimensional <code>arviz.InferenceData</code> object, and organizing it into a tidy dataframe to work with.</p>
 <section id="but-why" class="level3">
 <h3 class="anchored" data-anchor-id="but-why">But why?</h3>
-<p>In my last post, I incorrectly implemented the formula for the interaction model <code>mpg ~ hp * cyl</code>. I needed to explictly add in a variable so that we have <code>mpg ~ hp + cyl + hp:cyl</code>. To correct that, I’ve added the interaction variable that <code>lm()</code> or <code>brms:</code> would implicitly handle. Additionally, I centered the variables that would help prevent unnecessary divergece issues that would occur without it.</p>
-<p>This is what I enjoy about PyMC. In my opinion, it is a good blend of needing to be explicit with the data generating process, while still abstracting things like typing, loops, etc., and I find it great for learning. The only problem is is the lack of Tidyverse for everything before and after the model.</p>
+<p>In the first post, I implemented the formula incorrectly for the interaction model: <code>mpg ~ hp * cyl</code>. The interaction term needed to be explictly added in to look like: <code>mpg ~ hp + cyl + hp:cyl</code>. To rectify that I’ve added the interaction variable to the data passed into the model, which functions like <code>lm()</code> or <code>brms:brm()</code> would implicitly handle. Additionally, I centered the variables to help prevent unnecessary divergece issues.</p>
+<p>Striking the right balance of abstraction in Bayesian frameworks is delicate, and in my view, PyMC does a good job preserving the explicit structure of the data-generating process while abstracting away lower-level details like data types and iteration. Because of this, I find it a great tool for learning. With so much to learn in both the statistical theory and the frameworks of probablistic programming languages, anything to reduce the cognitive load is beneficial. Using the Tidyverse to express declaritve ways to work with data before and after the model fit can help.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
@@ -208,19 +208,20 @@ Note
 </div>
 <div id="callout-1" class="callout-1-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p>An R user is probably bewildered and still wondering <em>but why?</em> R has access to Stan and several packages that interface with it, including the brilliant <code>brms</code> package. Most R users are Stan users.</p>
-<p>I started out, like many others, with Statistical Rethinking by Richard McElreath<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. However I abandoned the <code>rethinking</code> package too soon, and felt like I didn’t know enough to jump into Stan directly. At the same time I had no idea if <code>brms</code> was doing exactly what I expected when I started to work on my own messy real world examples, and that is where PyMC came in for me.</p>
+<p>An R user reading this is probably bewildered and still wondering <em>but why?</em> R has access to Stan and several packages that interface with it, including the brilliant <code>brms</code> package. Most R users are Stan users.</p>
+<p>I started out, like many others, with Statistical Rethinking by Richard McElreath<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. As a longtime R user, the data wrangling was something I comfortable with. Trying to use base R and <code>rethinking</code> to work with the posterior ended up adding more friction while learning. I felt comfortable using <code>brms</code> and moved off of <code>rethininking</code>, but when it came to exploring my own real-world applications[^side-note] – I felt stuck. There was too much abstraction in <code>brms</code> and I didn’t know enough to jump into Stan directly. That is where I began to look at PyMC.</p>
+<p>McElreath intentionally built <code>rethinking</code> to be explicit and the course is designed to hammer in all sorts of regression techniques with it. For new folks diving into the course, I think I would reccommend using <code>rethinking</code> with <a href="https://mjskay.github.io/tidybayes.rethinking/articles/tidy-rethinking.html"><code>tidybayes.rethinking</code></a>. <code>rethinking</code> will force good fundementals building out the model, and you can still use <code>tidybayes</code> to work with the posterior in a tidy format.</p>
 </div>
 </div>
 </div>
 </section>
 <section id="how" class="level3">
 <h3 class="anchored" data-anchor-id="how">How</h3>
-<p>This was all doable before with Reticulate, but I recently had a chance to use the <a href="https://posit.co/blog/reticulate-1-41/">new version of Reticulate</a> which uses <code>uv</code> to manage the Python environment. I assumed you would need to some degree manage a seperate Python environment for anything signifcant. However, from the post:</p>
+<p>This was all doable before with Reticulate, but I recently had a chance to use the <a href="https://posit.co/blog/reticulate-1-41/">new version of Reticulate</a> which uses <code>uv</code> to manage the Python environment. I assumed you would need manage a seperate Python environment to some degree. However, from the post:</p>
 <blockquote class="blockquote">
 <p>with <code>py_require()</code>, Reticulate will automatically create and manage Python environments behind the scenes so you don’t have to.</p>
 </blockquote>
-<p>I had a use case to use it for a simple package integration, and it was wonderful. I came away thinking of ways to push it further.</p>
+<p>I used it for a simple package integration, but came away so impressed with its performance – all while not having to manage anything in Python. Reticulate handles the installation of <code>uv</code> if not already available, and will take care of everything else for you.</p>
 </section>
 </section>
 <section id="workflow" class="level2">
@@ -376,34 +377,32 @@ Note
 </section>
 <section id="reticulate-and-uv-environment" class="level3">
 <h3 class="anchored" data-anchor-id="reticulate-and-uv-environment">Reticulate and uv environment</h3>
-<p>The function <code>reticulate::py_require()</code> will specify which packages are needed for the project or workflow, and pass them to <code>uv</code> to resolve all the dependencies and create the Python virtual environment. This is feasible due to how performant <code>uv</code> is.</p>
-<p>I’ve listend to enough talks from Charlie Marsh<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> to know I can’t fully explain what <code>uv</code> does, but an oversimplification of it is that <code>uv</code> centralizes package downloads and resolves dependencies at the environment level so that you do not have to reinstall packages across environments.<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></p>
+<p>The function <code>reticulate::py_require()</code> will specify which packages are needed for the project or workflow, and pass them to <code>uv</code> to resolve all the dependencies for the Python virtual environment. This is feasible to do ephemerally due to how performant <code>uv</code> is.</p>
+<p>I’ve listend to enough talks from Charlie Marsh<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> to know I can’t do it justice to explain how <code>uv</code> works. An oversimplification of the process is that <code>uv</code> centralizes package downloads, and then resolves dependencies at the environment level so that you do not have to reinstall packages across environments.<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></p>
+<p>To use it with Reticulate, simply run:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">py_require</span>(<span class="st">'pymc'</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">py_config</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">py_config</span>() <span class="co"># only if you want to look at the config</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>python:         /Users/ryan/Library/Caches/org.R-project.R/R/reticulate/uv/cache/archive-v0/gKtLQ4Ys-srj2T0OKKL-t/bin/python3
+<pre><code>python:         /Users/ryan/Library/Caches/org.R-project.R/R/reticulate/uv/cache/archive-v0/iNd5Zf03UOAIdigTZPziA/bin/python3
 libpython:      /Users/ryan/Library/Caches/org.R-project.R/R/reticulate/uv/python/cpython-3.11.12-macos-aarch64-none/lib/libpython3.11.dylib
-pythonhome:     /Users/ryan/Library/Caches/org.R-project.R/R/reticulate/uv/cache/archive-v0/gKtLQ4Ys-srj2T0OKKL-t:/Users/ryan/Library/Caches/org.R-project.R/R/reticulate/uv/cache/archive-v0/gKtLQ4Ys-srj2T0OKKL-t
-virtualenv:     /Users/ryan/Library/Caches/org.R-project.R/R/reticulate/uv/cache/archive-v0/gKtLQ4Ys-srj2T0OKKL-t/bin/activate_this.py
+pythonhome:     /Users/ryan/Library/Caches/org.R-project.R/R/reticulate/uv/cache/archive-v0/iNd5Zf03UOAIdigTZPziA:/Users/ryan/Library/Caches/org.R-project.R/R/reticulate/uv/cache/archive-v0/iNd5Zf03UOAIdigTZPziA
+virtualenv:     /Users/ryan/Library/Caches/org.R-project.R/R/reticulate/uv/cache/archive-v0/iNd5Zf03UOAIdigTZPziA/bin/activate_this.py
 version:        3.11.12 (main, May 30 2025, 05:53:55) [Clang 20.1.4 ]
-numpy:          /Users/ryan/Library/Caches/org.R-project.R/R/reticulate/uv/cache/archive-v0/gKtLQ4Ys-srj2T0OKKL-t/lib/python3.11/site-packages/numpy
+numpy:          /Users/ryan/Library/Caches/org.R-project.R/R/reticulate/uv/cache/archive-v0/iNd5Zf03UOAIdigTZPziA/lib/python3.11/site-packages/numpy
 numpy_version:  2.2.6
 
 NOTE: Python version was forced by py_require()</code></pre>
 </div>
 </div>
-<p>Wow! You can see that we have an ephemeral Python environment created with <code>uv</code> to use with <code>reticulate</code>. Everytime this document is rendered, <code>reticulate</code> and <code>uv</code> will cache a new virtual environment to use. PyMC and its dependencies only had to be downloaded the first time. Also shown via CLI is that this took only <code>456ms</code> on this machine.</p>
-</section>
-<section id="one-requirement-many-dependencies" class="level3">
-<h3 class="anchored" data-anchor-id="one-requirement-many-dependencies">one requirement, many dependencies</h3>
+<p>Wow! You can see that we have an ephemeral Python environment created with <code>uv</code> to be used with <code>reticulate</code>. Everytime this document is rendered, <code>reticulate</code> and <code>uv</code> will cache a new virtual environment to use. PyMC and all of its dependencies only had to be downloaded once. Not shown here but via CLI is that this process only took <code>456ms</code> on this machine.</p>
 <p>Specifying <code>pymc</code> with <code>py_require()</code> actually built a Python environment with a list of packages needed, all mapped and configured with <code>uv</code>. I’ve shown some of the most well-known dependencies included.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">py_list_packages</span>() <span class="sc">|&gt;</span> <span class="fu">dim</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 37  3</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">py_list_packages</span>() <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(package <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">'pandas'</span>, <span class="st">'scipy'</span>, <span class="st">'matplotlib'</span>, <span class="st">'arviz'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">py_list_packages</span>() <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(package <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">'pandas'</span>, <span class="st">'scipy'</span>, <span class="st">'matplotlib'</span>, <span class="st">'arviz'</span>, <span class="st">'pytensor'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div class="kable-table">
 <table class="table table-sm table-striped small">
@@ -431,6 +430,11 @@ NOTE: Python version was forced by py_require()</code></pre>
 <td style="text-align: left;">pandas==2.2.3</td>
 </tr>
 <tr class="even">
+<td style="text-align: left;">pytensor</td>
+<td style="text-align: left;">2.31.3</td>
+<td style="text-align: left;">pytensor==2.31.3</td>
+</tr>
+<tr class="odd">
 <td style="text-align: left;">scipy</td>
 <td style="text-align: left;">1.15.3</td>
 <td style="text-align: left;">scipy==1.15.3</td>
@@ -443,7 +447,7 @@ NOTE: Python version was forced by py_require()</code></pre>
 </section>
 <section id="set-up-the-data" class="level3">
 <h3 class="anchored" data-anchor-id="set-up-the-data">Set up the data</h3>
-<p>As I mentioned before some transformations are needed, and it is great to be able to use the Tidyverse.</p>
+<p>As I mentioned before some basic transformations are needed, and it is great to be able to use the Tidyverse here. You can imagine a set of more complex joins, filters, and features created.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>mtcars_scaled <span class="ot">&lt;-</span> mtcars <span class="sc">%&gt;%</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
@@ -455,7 +459,7 @@ NOTE: Python version was forced by py_require()</code></pre>
 </section>
 <section id="r-to-python" class="level3">
 <h3 class="anchored" data-anchor-id="r-to-python">R to Python</h3>
-<p>PyMC doesn’t work with R, and will need objects and data types that it knows how to use. <code>reticulate::r_to_py()</code> will handle that.</p>
+<p>PyMC doesn’t work with R, and we will need objects and data types that it knows how to use. <code>reticulate::r_to_py()</code> will handle that.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>pandas_mtcars <span class="ot">&lt;-</span> <span class="fu">r_to_py</span>(mtcars_scaled)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">class</span>(mtcars_scaled))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -492,7 +496,7 @@ Warning
 </section>
 <section id="pymc-model" class="level3">
 <h3 class="anchored" data-anchor-id="pymc-model">PyMC Model</h3>
-<p>The Python sytax would look very similar to this, only now instead of using objects with dot notation, we access methods and attributes with the <code>$</code> character. If you are purely a Python developer, this might look obscene. This post requires a specifc subset of being interested in using PyMC and R together and might only be relevant for n=1, but the 1 is me.</p>
+<p>The Python sytax would look very similar to this, with one of the main changes being instead of using dot notation, methods and attributes are accessed with the <code>$</code> character. If you are purely a Python developer, this might look obscene. This post requires a specifc subset of being interested in using PyMC and R together and might only be relevant for a sample of n=1, but the 1 is me.</p>
 <p>Python code from before.</p>
 <div class="cell">
 <details>
@@ -558,14 +562,20 @@ Warning
 <span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>  <span class="co"># using a single core and chain because of Quarto page rendering,</span></span>
 <span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>  <span class="co"># normally this would be 4 chains</span></span>
-<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>  idata <span class="ot">=</span> pm<span class="sc">$</span><span class="fu">sample</span>(<span class="at">random_seed =</span> 527L, <span class="at">cores =</span> 1L, <span class="at">chains=</span>1L)</span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>  idata <span class="ot">=</span> pm<span class="sc">$</span><span class="fu">sample</span>(<span class="at">random_seed =</span> 527L, <span class="at">cores =</span> 1L, <span class="at">chains=</span>4L)</span>
 <span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                                                                                
                               Step      Grad      Sampli…                       
   Progre…   Draws   Diverg…   size      evals     Speed     Elapsed   Remaini…  
  ────────────────────────────────────────────────────────────────────────────── 
-  ━━━━━━━   2000    0         0.19      15        1488.62   0:00:01   0:00:00   
+  ━━━━━━━   2000    0         0.19      15        1362.02   0:00:01   0:00:00   
+                                                  draws/s                       
+  ━━━━━━━   2000    0         0.14      15        675.41    0:00:02   0:00:00   
+                                                  draws/s                       
+  ━━━━━━━   2000    4         0.17      15        453.62    0:00:04   0:00:00   
+                                                  draws/s                       
+  ━━━━━━━   2000    1         0.14      31        345.58    0:00:05   0:00:00   
                                                   draws/s                       
                                                                                 </code></pre>
 </div>
@@ -588,38 +598,41 @@ Warning
 </section>
 <section id="diagnostics" class="level3">
 <h3 class="anchored" data-anchor-id="diagnostics">Diagnostics</h3>
-<p>This plot isn’t necessarily useful because I used a single chain for Quarto rendering purposes, but all the <code>arviz</code> plots are available. My heart sank a bit when I finally thought about including it. I had already written most of the post and just trying to enhace it a bit. If diagnostic plots weren’t available, this would largely be useless or require the problem I was aiming to avoid of duplicating efforts. So this is great to see!</p>
+<p>As you can see, any of the <a href="https://python.arviz.org/en/stable/index.html">ArviZ</a> plots can be used.</p>
+<p>My heart sank a bit when I finally thought about including this in, as I had already written most of the post and was adding some finishing touches. If diagnostic plots weren’t available, this would all either be useless or require the very problem I sought out to destroy – duplicating efforts across environments. I didn’t become Anakin, an this is great to see!</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>az <span class="ot">&lt;-</span> <span class="fu">import</span>(<span class="st">'arviz'</span>, <span class="at">convert =</span> <span class="cn">FALSE</span>)</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>plt <span class="ot">&lt;-</span> <span class="fu">import</span>(<span class="st">"matplotlib.pyplot"</span>, <span class="at">convert =</span> <span class="cn">FALSE</span>)</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>az<span class="sc">$</span><span class="fu">plot_trace</span>(idata, <span class="at">var_names =</span> <span class="fu">c</span>(<span class="st">'alpha'</span>, <span class="st">'b'</span>, <span class="st">'sigma'</span>))</span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>plt<span class="sc">$</span><span class="fu">show</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p><img src="trace-plot.png" class="img-fluid"></p>
+<p><img src="trace_plot.png" class="img-fluid"></p>
 </section>
 <section id="posterior" class="level3">
 <h3 class="anchored" data-anchor-id="posterior">Posterior</h3>
 <p>Translating the PyMC model’s <code>arviz.InferenceData</code> object and posterior predictions to dataframes is still the same, with the addition of <code>reticulate::py_to_r()</code> to convert a pandas dataframe to R.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># posterior mu</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>df_posterior <span class="ot">&lt;-</span> idata<span class="sc">$</span>posterior<span class="sc">$</span>mu<span class="sc">$</span><span class="fu">to_dataframe</span>()<span class="sc">$</span><span class="fu">reset_index</span>() <span class="sc">|&gt;</span></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">py_to_r</span>() <span class="sc">|&gt;</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(<span class="fu">rownames_to_column</span>(mtcars, <span class="st">'car'</span>)) <span class="sc">|&gt;</span> <span class="co"># R mtcars has rownames for the car</span></span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">group =</span> <span class="fu">paste0</span>(chain, draw, cyl)) <span class="co"># for a particular plot later</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co"># reset index to include chain, draw, and index</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>df_posterior <span class="ot">&lt;-</span> idata[<span class="st">"posterior"</span>][<span class="st">'mu'</span>]<span class="sc">$</span><span class="fu">to_dataframe</span>()<span class="sc">$</span><span class="fu">reset_index</span>() <span class="sc">|&gt;</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">py_to_r</span>() <span class="sc">|&gt;</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(<span class="fu">rownames_to_column</span>(mtcars, <span class="st">'car'</span>)) <span class="sc">|&gt;</span> <span class="co"># R mtcars has rownames for the car</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">group =</span> <span class="fu">paste0</span>(chain, draw, cyl)) <span class="co"># for a particular plot later</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Joining with `by = join_by(car)`</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># posterior predictions of mpg</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>df_predictions <span class="ot">&lt;-</span> pp<span class="sc">$</span>predictions<span class="sc">$</span><span class="fu">to_dataframe</span>()<span class="sc">$</span><span class="fu">reset_index</span>() <span class="sc">|&gt;</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">py_to_r</span>() <span class="sc">|&gt;</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(<span class="fu">rownames_to_column</span>(mtcars, <span class="st">"car"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co"># can also access az.InferenceData objects with `$`</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>df_predictions <span class="ot">&lt;-</span> pp<span class="sc">$</span>predictions<span class="sc">$</span><span class="fu">to_dataframe</span>()<span class="sc">$</span><span class="fu">reset_index</span>() <span class="sc">|&gt;</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">py_to_r</span>() <span class="sc">|&gt;</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(<span class="fu">rownames_to_column</span>(mtcars, <span class="st">"car"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Joining with `by = join_by(car)`</code></pre>
 </div>
 </div>
-<p>We’re back in R, doing joins with the Tidyverse!</p>
+<p>We’re completely back in R, doing joins with the Tidyverse!</p>
 </section>
 <section id="plot" class="level3">
 <h3 class="anchored" data-anchor-id="plot">Plot</h3>
@@ -650,7 +663,7 @@ Warning
 </section>
 <section id="rython" class="level2">
 <h2 class="anchored" data-anchor-id="rython">Rython</h2>
-<p>This is an opinionated way of using PyMC and the grammar of graphics together to say the least. I really do like PyMC, but I prefer to settle on the data and other parts of the model iteration process with R if possible. There is potential for <code>reticulate::py_run_string()</code> as well, if you wanted to be able to drop it directly back into a pure Python environment. Access to an LLM would also be able to easily reformat the R-PyMC model to Python, or at least get it most of the way there.</p>
+<p>This is an opinionated way of using PyMC and the grammar-of-graphics together to say the least. I really do like PyMC, but I prefer to settle on the data and other parts of the model iteration process with R if possible. There is potential for <code>reticulate::py_run_string()</code> as well, if you wanted to be able to drop it directly back into a pure Python environment. Any AI model would also be able to easily reformat the R-PyMC model to Python, or at least get it most of the way there.</p>
 <p>I’m genuinely impressed by how far integrating R and Python has come. When I started my career, you had to do a bunch of clunky I/O to get features of both languages. Now, in a single workflow, I can use a full-featured Python probabilistic programming library alongside R’s non-standard evaluation for data transformation and visualization.</p>
 <p>A typo I had in drafting this at one point was <em>Rython</em>, and given my name… I quite like it.</p>
 

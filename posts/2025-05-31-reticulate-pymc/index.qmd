@@ -5,34 +5,37 @@ date: "2025-05-31"
 categories: [Bayesian, PyMC, Reticulate]
 df-print: kable
 description: Bayesian Modeling with PyMC in R with Reticulate.
+image: tidybayes_plot.png
 ---
 
 ## Bayesian models (Python) + grammar of graphics (R) = ❤️
 
-This is a nod to the title of [Benjamin T. Vincent's blog post](https://drbenvincent.github.io/posts/mcmc_grammar_of_graphics.html), who inspired me to dive further into PyMC. The reason I started looking into using the grammar of graphics with PyMC, was to reduce a barrier and emulate **tidyverse** as much as possible. What if I instead just... use R and PyMC?
+The heading is a nod to the title of [Benjamin T. Vincent's blog post](https://drbenvincent.github.io/posts/mcmc_grammar_of_graphics.html) about using the grammar-of-graphics with PyMC, and what inspired me to look into different ways of working with PyMC.
 
-This is also somewhat of a continuation of my [last post](../2025-05-14-tidy-pymc/), where I used the grammar of graphics to vizualize the posterior distributions from a PyMC model. This required extracting the data from the `arviz.InferenceData` object, and organizing it into a tidy dataframe to work with.
+This is also somewhat of a continuation of my [previous post](../2025-05-14-tidy-pymc/), where I used the grammar-of-graphics to vizualize the posterior distributions from a PyMC model. Accomplishing this built on Vincent's work by extracting the data from the high dimensional `arviz.InferenceData` object, and organizing it into a tidy dataframe to work with.
 
 ### But why?
 
-In my last post, I incorrectly implemented the formula for the interaction model `mpg ~ hp * cyl`. I needed to explictly add in a variable so that we have `mpg ~ hp + cyl + hp:cyl`. To correct that, I've added the interaction variable that `lm()` or `brms:` would implicitly handle. Additionally, I centered the variables that would help prevent unnecessary divergece issues that would occur without it.
+In the first post, I implemented the formula incorrectly for the interaction model: `mpg ~ hp * cyl`. The interaction term needed to be explictly added in to look like: `mpg ~ hp + cyl + hp:cyl`. To rectify that I've added the interaction variable to the data passed into the model, which functions like `lm()` or `brms:brm()` would implicitly handle. Additionally, I centered the variables to help prevent unnecessary divergece issues.
 
-This is what I enjoy about PyMC. In my opinion, it is a good blend of needing to be explicit with the data generating process, while still abstracting things like typing, loops, etc., and I find it great for learning. The only problem is is the lack of Tidyverse for everything before and after the model.
+Striking the right balance of abstraction in Bayesian frameworks is delicate, and in my view, PyMC does a good job preserving the explicit structure of the data-generating process while abstracting away lower-level details like data types and iteration. Because of this, I find it a great tool for learning. With so much to learn in both the statistical theory and the frameworks of probablistic programming languages, anything to reduce the cognitive load is beneficial. Using the Tidyverse to express declaritve ways to work with data before and after the model fit can help.
 
 
 ::: {.callout-note collapse="true"}
-An R user is probably bewildered and still wondering *but why?* R has access to Stan and several packages that interface with it, including the brilliant `brms` package. Most R users are Stan users.
+An R user reading this is probably bewildered and still wondering *but why?*  R has access to Stan and several packages that interface with it, including the brilliant `brms` package. Most R users are Stan users.
 
-I started out, like many others, with Statistical Rethinking by Richard McElreath[^sr]. However I abandoned the `rethinking` package too soon, and felt like I didn't know enough to jump into Stan directly. At the same time I had no idea if `brms` was doing exactly what I expected when I started to work on my own messy real world examples, and that is where PyMC came in for me.
+I started out, like many others, with Statistical Rethinking by Richard McElreath[^sr]. As a longtime R user, the data wrangling was something I comfortable with. Trying to use base R and `rethinking` to work with the posterior ended up adding more friction while learning. I felt comfortable using `brms` and moved off of `rethininking`, but when it came to exploring my own real-world applications[^side-note] -- I felt stuck. There was too much abstraction in `brms` and I didn't know enough to jump into Stan directly. That is where I began to look at PyMC.
+
+McElreath intentionally built `rethinking` to be explicit and the course is designed to hammer in all sorts of regression techniques with it. For new folks diving into the course, I think I would reccommend using `rethinking` with [`tidybayes.rethinking`](https://mjskay.github.io/tidybayes.rethinking/articles/tidy-rethinking.html). `rethinking` will force good fundementals building out the model, and you can still use `tidybayes` to work with the posterior in a tidy format.
 :::
 
 ### How
 
-This was all doable before with Reticulate, but I recently had a chance to use the [new version of Reticulate](https://posit.co/blog/reticulate-1-41/) which uses `uv` to manage the Python environment. I assumed you would need to some degree manage a seperate Python environment for anything signifcant. However, from the post:
+This was all doable before with Reticulate, but I recently had a chance to use the [new version of Reticulate](https://posit.co/blog/reticulate-1-41/) which uses `uv` to manage the Python environment. I assumed you would need manage a seperate Python environment to some degree. However, from the post:
 
 > with `py_require()`, Reticulate will automatically create and manage Python environments behind the scenes so you don’t have to.
 
-I had a use case to use it for a simple package integration, and it was wonderful. I came away thinking of ways to push it further.
+I used it for a simple package integration, but came away so impressed with its performance -- all while not having to manage anything in Python. Reticulate handles the installation of `uv` if not already available, and will take care of everything else for you.
 
 ## Workflow
 
@@ -56,27 +59,29 @@ I set the environment variable for `RETICULATE_PYTHON` to force Reticulate to us
 
 ### Reticulate and uv environment
 
-The function `reticulate::py_require()` will specify which packages are needed for the project or workflow, and pass them to `uv` to resolve all the dependencies and create the Python virtual environment. This is feasible due to how performant `uv` is.
+The function `reticulate::py_require()` will specify which packages are needed for the project or workflow, and pass them to `uv` to resolve all the dependencies for the Python virtual environment. This is feasible to do ephemerally due to how performant `uv` is.
 
-I've listend to enough talks from Charlie Marsh[^charlie] to know I can't fully explain what `uv` does, but an oversimplification of it is that `uv` centralizes package downloads and resolves dependencies at the environment level so that you do not have to reinstall packages across environments.[^uv-overview]
+I've listend to enough talks from Charlie Marsh[^charlie] to know I can't do it justice to explain how `uv` works. An oversimplification of the process is that `uv` centralizes package downloads, and then resolves dependencies at the environment level so that you do not have to reinstall packages across environments.[^uv-overview]
+
+To use it with Reticulate, simply run:
 
 ```{r}
 py_require('pymc')
-py_config()
+py_config() # only if you want to look at the config
 ```
 
-Wow! You can see that we have an ephemeral Python environment created with `uv` to use with `reticulate`. Everytime this document is rendered, `reticulate` and `uv` will cache a new virtual environment to use. PyMC and its dependencies only had to be downloaded the first time. Also shown via CLI is that this took only `456ms` on this machine.
+Wow! You can see that we have an ephemeral Python environment created with `uv` to be used with `reticulate`. Everytime this document is rendered, `reticulate` and `uv` will cache a new virtual environment to use. PyMC and all of its dependencies only had to be downloaded once. Not shown here but via CLI is that this process only took `456ms` on this machine.
 
 Specifying `pymc` with `py_require()` actually built a Python environment with a list of packages needed, all mapped and configured with `uv`. I've shown some of the most well-known dependencies included.
 
 ```{r}
 py_list_packages() |> dim()
-py_list_packages() |> dplyr::filter(package %in% c('pandas', 'scipy', 'matplotlib', 'arviz'))
+py_list_packages() |> dplyr::filter(package %in% c('pandas', 'scipy', 'matplotlib', 'arviz', 'pytensor'))
 ```
 
 ### Set up the data
 
-As I mentioned before some transformations are needed, and it is great to be able to use the Tidyverse here.
+As I mentioned before some basic transformations are needed, and it is great to be able to use the Tidyverse here. You can imagine a set of more complex joins, filters, and features created.
 
 ```{r}
 
@@ -182,7 +187,7 @@ with(mod, {
   )
   # using a single core and chain because of Quarto page rendering,
   # normally this would be 4 chains
-  idata = pm$sample(random_seed = 527L, cores = 1L, chains=1L)
+  idata = pm$sample(random_seed = 527L, cores = 1L, chains=4L)
 })
 
 with(mod, {
@@ -206,7 +211,9 @@ Some quirks to be aware of:
 
 ### Diagnostics
 
-This plot isn't all that useful because I used a single chain for Quarto rendering purposes, but all the `arviz` plots are available. My heart sank a bit when I finally thought about including this in as I had already written most of the post and was adding some finishing touches. If diagnostic plots weren't available, this whole thing would largely be useless or require the very problem I sought out to destroy, which was duplicating efforts. I didn't become Anakin, an this is great to see!
+As you can see, any of the [ArviZ](https://python.arviz.org/en/stable/index.html) plots can be used.
+
+My heart sank a bit when I finally thought about including this in, as I had already written most of the post and was adding some finishing touches. If diagnostic plots weren't available, this would all either be useless or require the very problem I sought out to destroy -- duplicating efforts across environments. I didn't become Anakin, an this is great to see!
 
 ```{r}
 #| eval: false
@@ -217,7 +224,7 @@ plt$show()
 
 ```
 
-![](trace-plot.png)
+![](trace_plot.png)
 
 
 
@@ -228,13 +235,15 @@ Translating the PyMC model's `arviz.InferenceData` object and posterior predicti
 
 ```{r}
 # posterior mu
-df_posterior <- idata$posterior$mu$to_dataframe()$reset_index() |>
+# reset index to include chain, draw, and index
+df_posterior <- idata["posterior"]['mu']$to_dataframe()$reset_index() |>
   py_to_r() |>
   as_tibble() |>
   left_join(rownames_to_column(mtcars, 'car')) |> # R mtcars has rownames for the car
   mutate(group = paste0(chain, draw, cyl)) # for a particular plot later
 
 # posterior predictions of mpg
+# can also access az.InferenceData objects with `$`
 df_predictions <- pp$predictions$to_dataframe()$reset_index() |>
   py_to_r() |>
   as_tibble() |>
@@ -242,7 +251,8 @@ df_predictions <- pp$predictions$to_dataframe()$reset_index() |>
 
 ```
 
-We're back in R, doing joins with the Tidyverse!
+
+We're completely back in R, doing joins with the Tidyverse!
 
 ### Plot
 
@@ -275,7 +285,7 @@ df_predictions |>
 
 ## Rython
 
-This is an opinionated way of using PyMC and the grammar of graphics together to say the least. I really do like PyMC, but I prefer to settle on the data and other parts of the model iteration process with R if possible. There is potential for `reticulate::py_run_string()` as well, if you wanted to be able to drop it directly back into a pure Python environment. Access to an LLM would also be able to easily reformat the R-PyMC model to Python, or at least get it most of the way there.
+This is an opinionated way of using PyMC and the grammar-of-graphics together to say the least. I really do like PyMC, but I prefer to settle on the data and other parts of the model iteration process with R if possible. There is potential for `reticulate::py_run_string()` as well, if you wanted to be able to drop it directly back into a pure Python environment. Any AI model would also be able to easily reformat the R-PyMC model to Python, or at least get it most of the way there.
 
 I'm genuinely impressed by how far integrating R and Python has come. When I started my career, you had to do a bunch of clunky I/O to get features of both languages. Now, in a single workflow, I can use a full-featured Python probabilistic programming library alongside R’s non-standard evaluation for data transformation and visualization.
 
