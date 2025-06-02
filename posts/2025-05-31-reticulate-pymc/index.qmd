@@ -4,30 +4,41 @@ author: "Ryan Plain"
 date: "2025-05-31"
 categories: [Bayesian, PyMC, Reticulate]
 df-print: kable
-description: Bayesian Modeling with PyMC and Reticulate in R.
+description: Bayesian Modeling with PyMC in R with Reticulate.
 ---
 
 ## Bayesian models (Python) + grammar of graphics (R) = ❤️
 
 This is a nod to the title of [Benjamin T. Vincent's blog post](https://drbenvincent.github.io/posts/mcmc_grammar_of_graphics.html), who inspired me to dive further into PyMC. The reason I started looking into using the grammar of graphics with PyMC, was to reduce a barrier and emulate **tidyverse** as much as possible. What if I instead just... use R and PyMC?
 
-In my [previous post](../2025-05-14-tidy-pymc/), I used the Grammar of Graphics to vizualize the posterior distributions from a PyMC model. This required extracting the data from the `az.InferenceData` object, and organizing into a tidy dataframe to work with.
+This is also somewhat of a continuation of my [last post](../2025-05-14-tidy-pymc/), where I used the grammar of graphics to vizualize the posterior distributions from a PyMC model. This required extracting the data from the `arviz.InferenceData` object, and organizing it into a tidy dataframe to work with.
 
-I recently got a chance to use the [new version of reticulate](https://posit.co/blog/reticulate-1-41/), which uses `uv` to manage the Python environment used in an R session, and fell in love. From the post:
+### But why?
+
+In my last post, I incorrectly implemented the formula for the interaction model `mpg ~ hp * cyl`. I needed to explictly add in a variable so that we have `mpg ~ hp + cyl + hp:cyl`. To correct that, I've added the interaction variable that `lm()` or `brms:` would implicitly handle. Additionally, I centered the variables that would help prevent unnecessary divergece issues that would occur without it.
+
+This is what I enjoy about PyMC. In my opinion, it is a good blend of needing to be explicit with the data generating process, while still abstracting things like typing, loops, etc., and I find it great for learning. The only problem is is the lack of Tidyverse for everything before and after the model.
+
+
+::: {.callout-note collapse="true"}
+An R user is probably bewildered and still wondering *but why?* R has access to Stan and several packages that interface with it, including the brilliant `brms` package. Most R users are Stan users.
+
+I started out, like many others, with Statistical Rethinking by Richard McElreath[^sr]. However I abandoned the `rethinking` package too soon, and felt like I didn't know enough to jump into Stan directly. At the same time I had no idea if `brms` was doing exactly what I expected when I started to work on my own messy real world examples, and that is where PyMC came in for me.
+:::
+
+### How
+
+This was all doable before with Reticulate, but I recently had a chance to use the [new version of Reticulate](https://posit.co/blog/reticulate-1-41/) which uses `uv` to manage the Python environment. I assumed you would need to some degree manage a seperate Python environment for anything signifcant. However, from the post:
 
 > with `py_require()`, Reticulate will automatically create and manage Python environments behind the scenes so you don’t have to.
 
-This workflow was available prior to the new version of Reticulate, but it is now incredibly simplified with `uv`.
+I had a use case to use it for a simple package integration, and it was wonderful. I came away thinking of ways to push it further.
 
 ## Workflow
 
-### Set up the environment
+### Set up with R
 
 Load up `reticulate` and the `tidyverse`.
-
-::: {.callout-note collapse="true"}
-I set the environment variable for `RETICULATE_PYTHON` to force Reticulate to use an ephemeral environment. I didn't have to do this in an interactive session, but this blog already had a uv proejct setup - and I didn't want it to be used. This could also be configured outside the script or workflow.
-:::
 
 ```{r}
 #| warning: false
@@ -39,36 +50,33 @@ mtcars |>
   head()
 ```
 
-The first difference in this workflow is that `mtcars` is a dataset available by default, and can be accessed directly.
+::: {.callout-note collapse="true"}
+I set the environment variable for `RETICULATE_PYTHON` to force Reticulate to use an ephemeral environment. I didn't have to do this in an interactive session, but this blog already had a uv proejct setup - and I didn't want it to be used. This could also be configured outside the script or workflow.
+:::
 
 ### Reticulate and uv environment
 
-I've listend to enough presentations and interviews from Charlie Marsh[^charlie] to know I can't fully explain what `uv` does. it centralizes downloads and resolves dependencies once, so you don't reinstall packages across environments.[^uv-overview]
+The function `reticulate::py_require()` will specify which packages are needed for the project or workflow, and pass them to `uv` to resolve all the dependencies and create the Python virtual environment. This is feasible due to how performant `uv` is.
 
-
-Using `reticulate::py_require()` will specify which packages are needed and how to create a virtual environment.
+I've listend to enough talks from Charlie Marsh[^charlie] to know I can't fully explain what `uv` does, but an oversimplification of it is that `uv` centralizes package downloads and resolves dependencies at the environment level so that you do not have to reinstall packages across environments.[^uv-overview]
 
 ```{r}
 py_require('pymc')
 py_config()
 ```
 
-You can see that we have an ephemeral python environment created with `uv` to use with `reticulate`. This is really neat! Everytime I render this document, it will cache a new virtual environment for `reticulate` to use. Thanks to uv’s global package cache, I only had to download pymc once—even across multiple isolated environments.
+Wow! You can see that we have an ephemeral Python environment created with `uv` to use with `reticulate`. Everytime this document is rendered, `reticulate` and `uv` will cache a new virtual environment to use. PyMC and its dependencies only had to be downloaded the first time. Also shown via CLI is that this took only `456ms` on this machine.
+
+Specifying `pymc` with `py_require()` actually built a Python environment with a list of packages needed, all mapped and configured with `uv`. I've shown some of the most well-known dependencies included.
 
 ```{r}
-# > py_list_packages() |> dim()
-# [1] 63  3
-
+py_list_packages() |> dim()
 py_list_packages() |> dplyr::filter(package %in% c('pandas', 'scipy', 'matplotlib', 'arviz'))
 ```
 
-Specifying the `pymc` dependency actually built a Python environment with 63 packages, all mapped and configured with `uv`. I've shown some of the most well-known dependencies of `pymc`.
-
 ### Set up the data
 
-In my last post, I incorrectly implemented the formula for the interaction model `mpg ~ hp * cyl`. I needed to explictly add in a variable so that we have `mpg ~ hp + cyl + hp:cyl`. To correct that, I've added a variable that `lm()` or `brms` would typically do under the hood. Additionally added in centering the variables to help prevent divergece issues.
-
-A use case for me to use R in the workflow is to be able to do the initial data wrangling with the `tidyverse`. In this example, I used `dplyr::mutate()` to scale the variables. You can imagine other types of transformations, filters, and joins that could be dropped in here.[^standard-scaler]
+As I mentioned before some transformations are needed, and it is great to be able to use the Tidyverse here.
 
 ```{r}
 
@@ -82,6 +90,8 @@ mtcars_scaled <- mtcars %>%
 
 ### R to Python
 
+PyMC doesn't work with R, and we will need objects and data types that it knows how to use. `reticulate::r_to_py()` will handle that.
+
 ```{r}
 pandas_mtcars <- r_to_py(mtcars_scaled)
 print(class(mtcars_scaled))
@@ -93,7 +103,7 @@ There are now two datasets:
 - **`mtcars_scaled`** is an R `data.frame()` object
 - **`pandas_mtcars`** is a Python `pandas.DataFrame()` object
 
-The pandas dataframe can be passed into PyMC and begin the Python portion of the workflow.
+We can now begin the Python portion of the workflow.
 
 ::: {.callout-warning}
 Integrating Python and R has come a long way, and is incredibly accessible. There are some edge cases and things to be aware of when converting data and objects between the two. [This post by Karin Hrovatin](https://hrovatin.github.io/posts/r_python/) is one of the best consolidated sources of information to learn from.
@@ -102,9 +112,10 @@ Integrating Python and R has come a long way, and is incredibly accessible. Ther
 
 ### PyMC Model
 
-The python sytax would look very similar to this, only now instead of using objects with dot notation, we access methods and attributes with the `$` character. If you are purely a python developer, this might look obscene. I choose to put up with this quirkyness because I find working with dataframes and plotting in R worth the trade off.
+The Python sytax would look very similar to this, with one of the main changes being instead of using dot notation, methods and attributes are accessed with the `$` character. If you are purely a Python developer, this might look obscene. This post requires a specifc subset of being interested in using PyMC and R together and might only be relevant for a sample of n=1, but the 1 is me.
 
 Python code from before.
+
 ```{python}
 #| eval: false
 #| code-fold: true
@@ -138,7 +149,7 @@ with mod as model:
 ```
 
 
-Now the same thing, but using `reticulate` to interface with `pymc`. I've also added in the new column `hp_cyl` for the interaction term.
+PyMC, but using Reticulate.
 
 ```{r}
 # import pymc as pm
@@ -193,9 +204,26 @@ Some quirks to be aware of:
   Integer literals in R require `L` to indicate an integer type, which Python expects here.
 
 
+### Diagnostics
+
+This plot isn't all that useful because I used a single chain for Quarto rendering purposes, but all the `arviz` plots are available. My heart sank a bit when I finally thought about including this in as I had already written most of the post and was adding some finishing touches. If diagnostic plots weren't available, this whole thing would largely be useless or require the very problem I sought out to destroy, which was duplicating efforts. I didn't become Anakin, an this is great to see!
+
+```{r}
+#| eval: false
+az <- import('arviz', convert = FALSE)
+plt <- import("matplotlib.pyplot", convert = FALSE)
+az$plot_trace(idata, var_names = c('alpha', 'b', 'sigma'))
+plt$show()
+
+```
+
+![](trace-plot.png)
+
+
+
 ### Posterior
 
-Translating the PyMC model's `az.InferenceData` object and posterior predictions to dataframes is still the same, with the addition of `py_to_r()` to convert a pandas dataframe to R.
+Translating the PyMC model's `arviz.InferenceData` object and posterior predictions to dataframes is still the same, with the addition of `reticulate::py_to_r()` to convert a pandas dataframe to R.
 
 
 ```{r}
@@ -213,6 +241,8 @@ df_predictions <- pp$predictions$to_dataframe()$reset_index() |>
   left_join(rownames_to_column(mtcars, "car"))
 
 ```
+
+We're back in R, doing joins with the Tidyverse!
 
 ### Plot
 
@@ -242,17 +272,20 @@ df_predictions |>
 ```
 
 
+
 ## Rython
 
 This is an opinionated way of using PyMC and the grammar of graphics together to say the least. I really do like PyMC, but I prefer to settle on the data and other parts of the model iteration process with R if possible. There is potential for `reticulate::py_run_string()` as well, if you wanted to be able to drop it directly back into a pure Python environment. Access to an LLM would also be able to easily reformat the R-PyMC model to Python, or at least get it most of the way there.
 
 I'm genuinely impressed by how far integrating R and Python has come. When I started my career, you had to do a bunch of clunky I/O to get features of both languages. Now, in a single workflow, I can use a full-featured Python probabilistic programming library alongside R’s non-standard evaluation for data transformation and visualization.
 
-A typo I had in drafting this at one point was *Rython*, and given my name... and I quite like it.
+A typo I had in drafting this at one point was *Rython*, and given my name... I quite like it.
 
 
 [^charlie]: Charlie Marsh is the lead developer of Ruff and discussed `uv` in multiple talks.
 
 [^uv-overview]: `uv` is a Rust-based Python package manager that installs dependencies in a global cache and reuses them in isolated environments, improving reproducibility and speed. For more, see the [uv docs](https://docs.astral.sh/uv/).
 
-[^standard-scaler]: StandardScaler from sci-kit learn does this in the python, so scaling isn't necessarily the point.
+[^standard-scaler]: StandardScaler from sci-kit learn does this in the Python, so scaling isn't necessarily the point.
+
+[^sr]: Stistical Rethinking https://xcelab.net/rm/
