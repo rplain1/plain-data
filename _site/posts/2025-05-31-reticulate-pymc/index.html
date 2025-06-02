@@ -192,37 +192,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="bayesian-models-python-grammar-of-graphics-r">Bayesian models (Python) + grammar of graphics (R) = ❤️</h2>
 <p>The heading is a nod to the title of <a href="https://drbenvincent.github.io/posts/mcmc_grammar_of_graphics.html">Benjamin T. Vincent’s blog post</a> about using the grammar-of-graphics with PyMC, and what inspired me to look into different ways of working with PyMC.</p>
 <p>This is also somewhat of a continuation of my <a href="../2025-05-14-tidy-pymc/">previous post</a>, where I used the grammar-of-graphics to vizualize the posterior distributions from a PyMC model. Accomplishing this built on Vincent’s work by extracting the data from the high dimensional <code>arviz.InferenceData</code> object, and organizing it into a tidy dataframe to work with.</p>
-<section id="but-why" class="level3">
-<h3 class="anchored" data-anchor-id="but-why">But why?</h3>
-<p>In the first post, I implemented the formula incorrectly for the interaction model: <code>mpg ~ hp * cyl</code>. The interaction term needed to be explictly added in to look like: <code>mpg ~ hp + cyl + hp:cyl</code>. To rectify that I’ve added the interaction variable to the data passed into the model, which functions like <code>lm()</code> or <code>brms:brm()</code> would implicitly handle. Additionally, I centered the variables to help prevent unnecessary divergece issues.</p>
-<p>Striking the right balance of abstraction in Bayesian frameworks is delicate, and in my view, PyMC does a good job preserving the explicit structure of the data-generating process while abstracting away lower-level details like data types and iteration. Because of this, I find it a great tool for learning. With so much to learn in both the statistical theory and the frameworks of probablistic programming languages, anything to reduce the cognitive load is beneficial. Using the Tidyverse to express declaritve ways to work with data before and after the model fit can help.</p>
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
-</div>
-<div id="callout-1" class="callout-1-contents callout-collapse collapse">
-<div class="callout-body-container callout-body">
-<p>An R user reading this is probably bewildered and still wondering <em>but why?</em> R has access to Stan and several packages that interface with it, including the brilliant <code>brms</code> package. Most R users are Stan users.</p>
-<p>I started out, like many others, with Statistical Rethinking by Richard McElreath<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. As a longtime R user, the data wrangling was something I comfortable with. Trying to use base R and <code>rethinking</code> to work with the posterior ended up adding more friction while learning. I felt comfortable using <code>brms</code> and moved off of <code>rethininking</code>, but when it came to exploring my own real-world applications[^side-note] – I felt stuck. There was too much abstraction in <code>brms</code> and I didn’t know enough to jump into Stan directly. That is where I began to look at PyMC.</p>
-<p>McElreath intentionally built <code>rethinking</code> to be explicit and the course is designed to hammer in all sorts of regression techniques with it. For new folks diving into the course, I think I would reccommend using <code>rethinking</code> with <a href="https://mjskay.github.io/tidybayes.rethinking/articles/tidy-rethinking.html"><code>tidybayes.rethinking</code></a>. <code>rethinking</code> will force good fundementals building out the model, and you can still use <code>tidybayes</code> to work with the posterior in a tidy format.</p>
-</div>
-</div>
-</div>
-</section>
-<section id="how" class="level3">
-<h3 class="anchored" data-anchor-id="how">How</h3>
-<p>This was all doable before with Reticulate, but I recently had a chance to use the <a href="https://posit.co/blog/reticulate-1-41/">new version of Reticulate</a> which uses <code>uv</code> to manage the Python environment. I assumed you would need manage a seperate Python environment to some degree. However, from the post:</p>
+<p>Everything in this post was all doable before with Reticulate, but I recently had an oppurtunity to use the <a href="https://posit.co/blog/reticulate-1-41/">new version of Reticulate</a> which uses <code>uv</code> to manage the Python environment. I assumed you would need manage a seperate Python environment to some degree. However, from the post:</p>
 <blockquote class="blockquote">
 <p>with <code>py_require()</code>, Reticulate will automatically create and manage Python environments behind the scenes so you don’t have to.</p>
 </blockquote>
-<p>I used it for a simple package integration, but came away so impressed with its performance – all while not having to manage anything in Python. Reticulate handles the installation of <code>uv</code> if not already available, and will take care of everything else for you.</p>
-</section>
+<p>I used it for a simple package integration, but came away floored with how performant and seemless it was to use – all while not having to manage anything in Python. Reticulate handles the installation of <code>uv</code> if not already available, and will take care of everything else for you.</p>
 </section>
 <section id="workflow" class="level2">
 <h2 class="anchored" data-anchor-id="workflow">Workflow</h2>
@@ -359,7 +333,7 @@ Note
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -368,7 +342,7 @@ Note
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>I set the environment variable for <code>RETICULATE_PYTHON</code> to force Reticulate to use an ephemeral environment. I didn’t have to do this in an interactive session, but this blog already had a uv proejct setup - and I didn’t want it to be used. This could also be configured outside the script or workflow.</p>
 </div>
@@ -377,8 +351,8 @@ Note
 </section>
 <section id="reticulate-and-uv-environment" class="level3">
 <h3 class="anchored" data-anchor-id="reticulate-and-uv-environment">Reticulate and uv environment</h3>
-<p>The function <code>reticulate::py_require()</code> will specify which packages are needed for the project or workflow, and pass them to <code>uv</code> to resolve all the dependencies for the Python virtual environment. This is feasible to do ephemerally due to how performant <code>uv</code> is.</p>
-<p>I’ve listend to enough talks from Charlie Marsh<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> to know I can’t do it justice to explain how <code>uv</code> works. An oversimplification of the process is that <code>uv</code> centralizes package downloads, and then resolves dependencies at the environment level so that you do not have to reinstall packages across environments.<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></p>
+<p>The function <code>reticulate::py_require()</code> will specify which packages are needed for the project or workflow, and pass them to <code>uv</code> to resolve all the dependencies for the Python virtual environment. This is feasible to do ephemerally due to how performant <code>uv</code> is. You can compose <code>py_require()</code> to build out which packages, if there is a specific python version, and even a date to stop looking for new package updates.</p>
+<p>I’ve listend to enough talks from Charlie Marsh<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> to know I can’t do it justice to explain how <code>uv</code> works. An oversimplification of the process is that <code>uv</code> centralizes package downloads, and then resolves dependencies at the environment level so that you do not have to reinstall packages across environments.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
 <p>To use it with Reticulate, simply run:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">py_require</span>(<span class="st">'pymc'</span>)</span>
@@ -395,7 +369,7 @@ numpy_version:  2.2.6
 NOTE: Python version was forced by py_require()</code></pre>
 </div>
 </div>
-<p>Wow! You can see that we have an ephemeral Python environment created with <code>uv</code> to be used with <code>reticulate</code>. Everytime this document is rendered, <code>reticulate</code> and <code>uv</code> will cache a new virtual environment to use. PyMC and all of its dependencies only had to be downloaded once. Not shown here but via CLI is that this process only took <code>456ms</code> on this machine.</p>
+<p>Wow! You can see that we have an ephemeral Python environment created with <code>uv</code> to be used with <code>reticulate</code>. Everytime this document is rendered, <code>reticulate</code> and <code>uv</code> will cache a new virtual environment to use. PyMC and all of its dependencies only had to be downloaded once. Not shown <strong>456ms</strong> on this machine.</p>
 <p>Specifying <code>pymc</code> with <code>py_require()</code> actually built a Python environment with a list of packages needed, all mapped and configured with <code>uv</code>. I’ve shown some of the most well-known dependencies included.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">py_list_packages</span>() <span class="sc">|&gt;</span> <span class="fu">dim</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -447,7 +421,7 @@ NOTE: Python version was forced by py_require()</code></pre>
 </section>
 <section id="set-up-the-data" class="level3">
 <h3 class="anchored" data-anchor-id="set-up-the-data">Set up the data</h3>
-<p>As I mentioned before some basic transformations are needed, and it is great to be able to use the Tidyverse here. You can imagine a set of more complex joins, filters, and features created.</p>
+<p>In the first post, I implemented the formula incorrectly for the interaction model: <code>mpg ~ hp * cyl</code>. The interaction term needed to be explictly added in to look like: <code>mpg ~ hp + cyl + hp:cyl</code>. To rectify that I’ve added the interaction variable to the data passed into the model, which functions like <code>lm()</code> or <code>brms:brm()</code> would implicitly handle. Additionally, I centered the variables to help prevent unnecessary divergece issues.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>mtcars_scaled <span class="ot">&lt;-</span> mtcars <span class="sc">%&gt;%</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
@@ -496,7 +470,7 @@ Warning
 </section>
 <section id="pymc-model" class="level3">
 <h3 class="anchored" data-anchor-id="pymc-model">PyMC Model</h3>
-<p>The Python sytax would look very similar to this, with one of the main changes being instead of using dot notation, methods and attributes are accessed with the <code>$</code> character. If you are purely a Python developer, this might look obscene. This post requires a specifc subset of being interested in using PyMC and R together and might only be relevant for a sample of n=1, but the 1 is me.</p>
+<p>The Python sytax would look very similar to this, with one of the main changes being instead of using dot notation, methods and attributes are accessed with the <code>$</code> character.</p>
 <p>Python code from before.</p>
 <div class="cell">
 <details>
@@ -561,21 +535,20 @@ Warning
 <span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">dims =</span> <span class="st">"car"</span>,</span>
 <span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>  <span class="co"># using a single core and chain because of Quarto page rendering,</span></span>
-<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>  <span class="co"># normally this would be 4 chains</span></span>
-<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>  idata <span class="ot">=</span> pm<span class="sc">$</span><span class="fu">sample</span>(<span class="at">random_seed =</span> 527L, <span class="at">cores =</span> 1L, <span class="at">chains=</span>4L)</span>
-<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>  idata <span class="ot">=</span> pm<span class="sc">$</span><span class="fu">sample</span>(<span class="at">random_seed =</span> 527L, <span class="at">cores =</span> 1L, <span class="at">chains=</span>4L)</span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                                                                                
                               Step      Grad      Sampli…                       
   Progre…   Draws   Diverg…   size      evals     Speed     Elapsed   Remaini…  
  ────────────────────────────────────────────────────────────────────────────── 
-  ━━━━━━━   2000    0         0.19      15        1362.02   0:00:01   0:00:00   
+  ━━━━━━━   2000    0         0.19      15        1318.93   0:00:01   0:00:00   
                                                   draws/s                       
-  ━━━━━━━   2000    0         0.14      15        675.41    0:00:02   0:00:00   
+  ━━━━━━━   2000    0         0.14      15        652.90    0:00:03   0:00:00   
                                                   draws/s                       
-  ━━━━━━━   2000    4         0.17      15        453.62    0:00:04   0:00:00   
+  ━━━━━━━   2000    4         0.17      15        438.50    0:00:04   0:00:00   
                                                   draws/s                       
-  ━━━━━━━   2000    1         0.14      31        345.58    0:00:05   0:00:00   
+  ━━━━━━━   2000    1         0.14      31        334.03    0:00:05   0:00:00   
                                                   draws/s                       
                                                                                 </code></pre>
 </div>
@@ -599,7 +572,7 @@ Warning
 <section id="diagnostics" class="level3">
 <h3 class="anchored" data-anchor-id="diagnostics">Diagnostics</h3>
 <p>As you can see, any of the <a href="https://python.arviz.org/en/stable/index.html">ArviZ</a> plots can be used.</p>
-<p>My heart sank a bit when I finally thought about including this in, as I had already written most of the post and was adding some finishing touches. If diagnostic plots weren’t available, this would all either be useless or require the very problem I sought out to destroy – duplicating efforts across environments. I didn’t become Anakin, an this is great to see!</p>
+<p>My heart sank a bit when I finally thought about including this in, as I had already written most of the post and was adding some finishing touches. If diagnostic plots weren’t available, this would all either be useless or require the very problem I sought out to destroy – duplicating efforts across environments. So this is great to see!</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>az <span class="ot">&lt;-</span> <span class="fu">import</span>(<span class="st">'arviz'</span>, <span class="at">convert =</span> <span class="cn">FALSE</span>)</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>plt <span class="ot">&lt;-</span> <span class="fu">import</span>(<span class="st">"matplotlib.pyplot"</span>, <span class="at">convert =</span> <span class="cn">FALSE</span>)</span>
@@ -632,11 +605,11 @@ Warning
 <pre><code>Joining with `by = join_by(car)`</code></pre>
 </div>
 </div>
-<p>We’re completely back in R, doing joins with the Tidyverse!</p>
+<p>We’re completely back in R, doing joins with the Tidyverse.</p>
 </section>
 <section id="plot" class="level3">
 <h3 class="anchored" data-anchor-id="plot">Plot</h3>
-<p>Now for my favorite part of this, plot with <strong>ggplot2</strong> and use <a href="https://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">tidybayes</a> directly!</p>
+<p>Now for my favorite part of this, plot with <code>ggplot2</code> and use <a href="https://mjskay.github.io/tidybayes/reference/add_predicted_draws.html">tidybayes</a> directly!</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>df_predictions <span class="sc">|&gt;</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(hp, y, <span class="at">color =</span> <span class="fu">as.factor</span>(cyl))) <span class="sc">+</span></span>
@@ -659,12 +632,22 @@ Warning
 <p><img src="index_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
+<p>In one workflow we:</p>
+<ul>
+<li>used R for data ingestion (default dataset)</li>
+<li>used <code>dplyr</code> to do transformations</li>
+<li>fit a Bayesian model with PyMC in Python</li>
+<li>extracted pandas dataframes of the posterior into a tidy format</li>
+<li>Used <code>dplyr</code> again to join it with the original dataset</li>
+<li>used <code>ggplot2</code> and <code>tidybayes</code> to vizualize the samples</li>
+</ul>
+<p>All without ever having to manage a seperate python environment.</p>
 </section>
 </section>
 <section id="rython" class="level2">
 <h2 class="anchored" data-anchor-id="rython">Rython</h2>
 <p>This is an opinionated way of using PyMC and the grammar-of-graphics together to say the least. I really do like PyMC, but I prefer to settle on the data and other parts of the model iteration process with R if possible. There is potential for <code>reticulate::py_run_string()</code> as well, if you wanted to be able to drop it directly back into a pure Python environment. Any AI model would also be able to easily reformat the R-PyMC model to Python, or at least get it most of the way there.</p>
-<p>I’m genuinely impressed by how far integrating R and Python has come. When I started my career, you had to do a bunch of clunky I/O to get features of both languages. Now, in a single workflow, I can use a full-featured Python probabilistic programming library alongside R’s non-standard evaluation for data transformation and visualization.</p>
+<p>I’m genuinely impressed by how far integrating R and Python has come. When I started my career, you had to do a bunch of clunky I/O to get features of both languages.</p>
 <p>A typo I had in drafting this at one point was <em>Rython</em>, and given my name… I quite like it.</p>
 
 
@@ -674,9 +657,8 @@ Warning
 <div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
 
 <ol>
-<li id="fn1"><p>Stistical Rethinking https://xcelab.net/rm/<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn2"><p>Charlie Marsh is the lead developer of Ruff and discussed <code>uv</code> in multiple talks.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn3"><p><code>uv</code> is a Rust-based Python package manager that installs dependencies in a global cache and reuses them in isolated environments, improving reproducibility and speed. For more, see the <a href="https://docs.astral.sh/uv/">uv docs</a>.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn1"><p>Charlie Marsh is the lead developer of Ruff and discussed <code>uv</code> in multiple talks.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p><code>uv</code> is a Rust-based Python package manager that installs dependencies in a global cache and reuses them in isolated environments, improving reproducibility and speed. For more, see the <a href="https://docs.astral.sh/uv/">uv docs</a>.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
