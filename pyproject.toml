@@ -11,4 +11,5 @@ dependencies = [
     "polars>=1.29.0",
     "pyarrow>=20.0.0",
     "pymc>=5.22.0",
+    "tables>=3.10.2",
 ]
