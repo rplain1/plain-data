@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/2026-01-06-statistical-rethinking/index.html",
       "/posts/2025-05-31-reticulate-pymc/index.html",
       "/posts/2025-05-14-tidy-pymc/index.html"
     ]

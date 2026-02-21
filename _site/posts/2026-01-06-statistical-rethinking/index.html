@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Ryan Plain">
+<meta name="dcterms.date" content="2026-01-06">
+<meta name="description" content="Tribute to Richard McElreath’s Statistical Rethinking">
+
+<title>Just Plain Data - Statistical Rethinking</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">Just Plain Data</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html" rel="" target="">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/rplain1" rel="" target=""><i class="bi bi-github" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://bsky.app/profile/ryanplain.bsky.social" rel="" target=""><i class="bi bi-bluesky" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Statistical Rethinking</h1>
+                  <div>
+        <div class="description">
+          Tribute to Richard McElreath’s Statistical Rethinking
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">Essay</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>Ryan Plain </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">January 6, 2026</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+<p>I’m looking forward to this course refresh of <a href="https://github.com/rmcelreath/stat_rethinking_2026">Statistical Rethinking</a>. Richard McElreath has been one of the most uplifting and influential educators I’ve interacted with, and this course has had a significant impact on my life.&nbsp;</p>
+<section id="y-mx-b" class="level3">
+<h3 class="anchored" data-anchor-id="y-mx-b">y = mx + b</h3>
+<p>I was someone that didn’t jive with the standard educational system. This is before educational YouTube videos were really a thing, and channel’s like <a href="https://www.3blue1brown.com/">3Blue1Brown</a> and other visualization first approaches weren’t commonly used. &nbsp;</p>
+<p>I hit a wall hard with Algebra 2 in high school and got out of AP courses. I failed math for non-science majors, failed algebra twice, and only eventually passed with a “D”. It took me 5 years to complete community college, racking up two academic probations, an academic suspension, across three total community colleges.</p>
+<p>I enrolled in a university I could commute to, and while looking at degrees I needed to find a path forward with the least math possible. I felt broken from math. I was terrified of it, and saw myself with a limited and capped potential.</p>
+<p>For better or worse, I ended up choosing a Business Economics major after over-indexing on an in-person aptitude test I was took. I read some information about Econ, took an intro course and decided it would be okay. Ultimately, I lucked out being naive how foundational math and statistics was to it.</p>
+<p>I looked over the course requirements and only a single Calculus course stood in my way. It was standing there like a behemoth-sized enemy in Elden Ring, but it was like that for most of, if not all, the majors in the business school.</p>
+<p>I took Calculus (for non-science majors again) at the local community college due to the credit transferring as pass/fail. To top it off, my (younger) sister, who was doing a minor in math, was in town for the summer. She was there to help tutor me and provide a safety net. All of this context is to highlight how much my confidence was shattered.</p>
+</section>
+<section id="dxdy-0" class="level3">
+<h3 class="anchored" data-anchor-id="dxdy-0">dx/dy &gt; 0</h3>
+<p>I passed. It wasn’t as bad as I thought, but we barely touched on the concept of an integral at the end of the semester.</p>
+<p>Then came statistics. Now, this was an introductory to statistics class in a business school that was… lets say not the most reputable for rigor in the university, but it was applied. It changed how I viewed math, or at least some parts of it. I could connect <em>why</em> we were learning this, how it would get used in real life, and the concept of distributions intuitively made sense to me. For once, everything was clicking and I was excelling in school. New territory for me.&nbsp;</p>
+<p>There was this strange feeling of going down this path without a deeper calculus training and having experience in statistics. It was like driving a car without brakes. Actually, I don’t know a thing about cars - but the analogy would be if I could operate the car but not turn at speeds greater than 20 mph. Intro to Econometrics was by far my most difficult course. I remember looking around the room trying to see if anyone else was as lost as me when the instructor said “with respect to x”.</p>
+<p>There was at least a reassuring moment for me in that class where a student who enjoyed studying calculus said that he hated statistics. It had me at least aligned with the notion to remove the sweeping generalization of “not being good with numbers”. I also was able to manage a “B”.</p>
+<p>Fast forward, I graduated with a degree. Rushed through it and took 48 hours in a calendar year, and in hindsight learned very little. I did come out with a lot of confidence though, and it put a new perspective on life after ditching the fear of math.&nbsp;</p>
+<p>I Applied to Georgia Tech’s Online MS Analytics program (OMSA). It was relatively easy to get into, cost effective, online… and what I did not understand was how sink or swim it would be. There was a requirement for having 3 levels of calculus. My confidence (maybe arrogance) was at an all time high, and so with only a single semester of calculus for non-math majors - I asked for an admissions exception and agreed that I would meet the demands of the coursework. I’m thankful for that confidence because overall grad school was a great learning experience, but it was tough. Every class I signed up for was like walking into a minefield wondering if there were going to be integrals lurking somewhere.&nbsp;</p>
+<p>One class in particular I was excited for was a course Bayesian statistics. One of the introductory classes in the OMSA curriculum touched a myriad of topics, and had a brief overview of Bayesian statistics and how it could be used to rank teams. The example took point differential of basketball games and reduced the noise to estimate the true point advantage of a team,. I explain it plainly like that because that really was the extend of my understanding at the time, which was hardly anything at all. I had always been interested in sports, found it fascinating and had a desire to learn more.</p>
+<p>I took the class and aced the first homework assignment, but it was hard work. The class was set up so that the first half was theory and the homework was typically analytical closed form solutions. The second half would use BUGS and be more applied.&nbsp;</p>
+</section>
+<section id="dxdy-0-1" class="level3">
+<h3 class="anchored" data-anchor-id="dxdy-0-1">dx/dy &lt; 0</h3>
+<p>I think… I didn’t make it past week 3. After tears, frustration, and agony trying to complete the second homework assignment, I dropped the class. I just didn’t have enough time to upskill what I needed for the class and was overwhelmed.&nbsp;</p>
+<p>Defeated. The feeling I thought I conquered was back. To think you have moved on or escaped from something, and then to fall back into it again, was devastating.</p>
+<p>I took different classes and ultimately finished my degree, but the confidence I had exiting undergrad vs grad school was a night and day difference - and this was more than just the Dunning-Kruger effect. I think there is some truth that it partially belonged to that, but there was this looming shadow of not <em>knowing</em> math. An area that I did not feel equipped to handle if I ever came across it again.&nbsp; ### Statistical Rethinking</p>
+<p>I was aware of Statistical Rethinking from pre-pandemic days on twitter. When it was toxic in the ways most social media is, but also had a strong data science community. The second edition of the book was coming available and I thought it would be a good time to take a stab at it.&nbsp;I didn’t know much about it other than it would be accessible to all different levels of experience and highly recommended. Plus, I could focus solely on it without other classes.</p>
+<p>The text itself is dense and covers a lot. It’s an actual zero to hero course that teaches not just how to implement the models, but also how to critically think through the problems. An area I did not have enough experience in. Throughout the book he clearly explains how large of an endeavor this is and breaks it up into manageable sections.</p>
+<p>From chapter 3:</p>
+<blockquote class="blockquote">
+<p>First, many scientists are uncomfortable with integral calculus, even though they have a strong and valid intuitions about how to summarize data.</p>
+</blockquote>
+<p>I remember reading this and feeling incredibly seen and validated. I felt confident in my ability to continue, and helped remove some of the imposter syndrome that I didn’t belong here. Even putting myself in with the term <em>scientist</em>.</p>
+<p>The course <em>is</em> hard if you are just starting out. One of the most important lessons I learned through this book is that learning is nonlinear. I think I learned how to truly study, or at least be more effective with this. Prior to this, I always felt like I needed to learn everything as it came. I think that was one of my pitfalls with learning math, scribbling everything the instructor was throwing on the whiteboard, not asking questions, and not thinking critically about any of the presented information.</p>
+<p>McElreath’s lecture videos pause at the midpoint. He reiterates that it is a lot of material, and suggests options based on where you are at with your learning. One of them was to go back to the start, and review the material.</p>
+<p>I’ve done that multiple times now. It took me several attempts to get past building the first linear model in chapter 4. I <em>strongly</em> sympathize with anyone who provided feedback that helped lead to the refreshed course to split into two parts.</p>
+<p>I’m excited to go through the second half of the course again, and if I feel I’m over my skis at any point - I’m confident to go back to earlier sections and refresh on the material.</p>
+</section>
+<section id="confidence" class="level3">
+<h3 class="anchored" data-anchor-id="confidence">Confidence</h3>
+<p>This is <code>N=1</code>, but I have not had an educator so supportive and compassionate in the learning process. So many times in the text or videos he will say, “if you are confused, that’s okay”.</p>
+<p>I’ll never forget sitting on my patio when it clicked that the models are sampling parameters and not any outcome or target value. I have the satisfaction of being able to push through and learn something I thought was daunting and out of reach for me.</p>
+<p>I’m confident. I’m a scientist, an analytical thinker, experimenter, tinkerer, someone who wants to understand the world. I’m all of those things, and see all those things within myself, in large part thanks Richard McElreath and Statistical Rethinking.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

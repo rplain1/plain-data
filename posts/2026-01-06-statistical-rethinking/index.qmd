@@ -1,0 +1,77 @@
+---
+title: "Statistical Rethinking"
+author: "Ryan Plain"
+date: "2026-01-06"
+categories: [Essay]
+description: Tribute to Richard McElreath's Statistical Rethinking
+---
+
+
+I'm looking forward to this course refresh of [Statistical Rethinking](https://github.com/rmcelreath/stat_rethinking_2026). Richard McElreath has been one of the most uplifting and influential educators I've interacted with, and this course has had a significant impact on my life. 
+
+### y = mx + b
+
+I was someone that didn't jive with the standard educational system. This is before educational YouTube videos were really a thing, and channel's like [3Blue1Brown](https://www.3blue1brown.com/) and other visualization first approaches weren't commonly used.  
+
+I hit a wall hard with Algebra 2 in high school and dropped out of AP courses mid-year. I failed math for non-science majors, failed algebra twice, and only eventually passed with a "D". It took me 5 years to complete community college, racking up two academic probations, an academic suspension, across three total community colleges.
+
+I enrolled in a university I could commute to, and while looking at degrees I needed to find a path forward with the least math possible. Math broke me. I was terrified of it, and saw myself with a limited and capped potential.
+
+For better or worse, I ended up choosing a Business Economics major after over-indexing on an in-person aptitude test I was took. I read some information about Econ, took an intro course and decided it would be okay. Ultimately, I lucked out being naive how foundational math and statistics was to it.
+
+I looked over the course requirements and only a single Calculus course stood in my way. It was standing there like a behemoth-sized enemy in Elden Ring, but it was like that for most of, if not all, the majors in the business school.
+
+I took Calculus (for non-science majors again) at the local community college due to the credit transferring as pass/fail. To top it off, my (younger) sister, who was doing a minor in math, was in town for the summer. She was there to help tutor me and provide a safety net. All of this context is to highlight how much my confidence was shattered.
+
+### dx/dy > 0
+
+I passed. It wasn't as bad as I thought, but we barely touched on the concept of an integral at the end of the semester.
+
+Then came statistics. Now, this was an introductory to statistics class in a business school that was... lets say not the most reputable for rigor in the university, but it was applied. It changed how I viewed math, or at least some parts of it. I could connect _why_ we were learning this, how it would get used in real life, and the concept of distributions intuitively made sense to me. For once, everything was clicking and I was excelling in school. New territory for me. 
+
+There was this strange feeling of going down this path without a deeper calculus training and having experience in statistics. It was like driving a car without brakes. Actually, I don't know a thing about cars - but the analogy would be if I could operate the car but not turn at speeds greater than 20 mph. Intro to Econometrics was by far my most difficult course. I remember looking around the room trying to see if anyone else was as lost as me when the instructor said "with respect to x".
+
+There was at least a reassuring moment for me in that class where a student who enjoyed studying calculus said that he hated statistics. It had me at least aligned with the notion to remove the sweeping generalization of "not being good with numbers". I also was able to manage a "B".
+
+Fast forward, I graduated with a degree. Rushed through it and took 48 hours in a calendar year, and in hindsight learned very little. I did come out with a lot of confidence though, and it put a new perspective on life after ditching the fear of math. 
+
+I Applied to Georgia Tech's Online MS Analytics program (OMSA). It was relatively easy to get into, cost effective, online... and what I did not understand was how sink or swim it would be. There was a requirement for having 3 levels of calculus. My confidence (maybe arrogance) was at an all time high, and so with only a single semester of calculus for non-math majors - I asked for an admissions exception and agreed that I would meet the demands of the coursework. I'm thankful for that confidence because overall grad school was a great learning experience, but it was tough. Every class I signed up for was like walking into a minefield wondering if there were going to be integrals lurking somewhere. 
+
+One class in particular I was excited for was a course Bayesian statistics. One of the introductory classes in the OMSA curriculum touched a myriad of topics, and had a brief overview of Bayesian statistics and how it could be used to rank teams. The example took point differential of basketball games and reduced the noise to estimate the true point advantage of a team,. I explain it plainly like that because that really was the extend of my understanding at the time, which was hardly anything at all. I had always been interested in sports, found it fascinating and had a desire to learn more.
+
+I took the class and aced the first homework assignment, but it was hard work. The class was set up so that the first half was theory and the homework was typically analytical closed form solutions. The second half would use BUGS and be more applied. 
+
+### dx/dy < 0
+
+I think... I didn't make it past week 3. After tears, frustration, and agony trying to complete the second homework assignment, I dropped the class. I just didn't have enough time to upskill what I needed for the class and was overwhelmed. 
+
+Defeated. The feeling I thought I conquered was back. To think you have moved on or escaped from something, and then to fall back into it again, was devastating.
+
+I took different classes and ultimately finished my degree, but the confidence I had exiting undergrad vs grad school was a night and day difference - and this was more than just the Dunning-Kruger effect. I think there is some truth that it partially belonged to that, but there was this looming shadow of not _knowing_ math. An area that I did not feel equipped to handle if I ever came across it again. 
+### Statistical Rethinking
+
+I was aware of Statistical Rethinking from pre-pandemic days on twitter. When it was toxic in the ways most social media is, but also had a strong data science community. The second edition of the book was coming available and I thought it would be a good time to take a stab at it. I didn't know much about it other than it would be accessible to all different levels of experience and highly recommended. Plus, I could focus solely on it without other classes.
+
+The text itself is dense and covers a lot. It's an actual zero to hero course that teaches not just how to implement the models, but also how to critically think through the problems. An area I did not have enough experience in. Throughout the book he clearly explains how large of an endeavor this is and breaks it up into manageable sections.
+
+From chapter 3:
+
+> First, many scientists are uncomfortable with integral calculus, even though they have a strong and valid intuitions about how to summarize data.
+
+I remember reading this and feeling incredibly seen and validated. I felt confident in my ability to continue, and helped remove some of the imposter syndrome that I didn't belong here. Even putting myself in with the term _scientist_.
+
+The course _is_ hard if you are just starting out. One of the most important lessons I learned through this book is that learning is nonlinear. I think I learned how to truly study, or at least be more effective with this. Prior to this, I always felt like I needed to learn everything as it came. I think that was one of my pitfalls with learning math, scribbling everything the instructor was throwing on the whiteboard, not asking questions, and not thinking critically about any of the presented information.
+
+McElreath's lecture videos pause at the midpoint. He reiterates that it is a lot of material, and suggests options based on where you are at with your learning. One of them was to go back to the start, and review the material.
+
+I've done that multiple times now. It took me several attempts to get past building the first linear model in chapter 4. I *strongly* sympathize with anyone who provided feedback that helped lead to the refreshed course to split into two parts.
+
+I'm excited to go through the second half of the course again, and if I feel I'm over my skis at any point - I'm confident to go back to earlier sections and refresh on the material.
+
+### Confidence
+
+ This is `N=1`, but I have not had an educator so supportive and compassionate in the learning process. So many times in the text or videos he will say, "if you are confused, that's okay".
+
+I'll never forget sitting on my patio when it clicked that the models are sampling parameters and not any outcome or target value. I have the satisfaction of being able to push through and learn something I thought was daunting and out of reach for me.
+
+I'm confident. I'm a scientist,  an analytical thinker, experimenter, tinkerer, someone who wants to understand the world. I'm all of those things, and see all those things within myself, in large part thanks Richard McElreath and Statistical Rethinking.
