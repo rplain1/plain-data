@@ -1,3 +1,7 @@
+[tool.uv.workspace]
+members = []
+exclude = ["posts/*"]
+
 [project]
 name = "plain-data"
 version = "0.1.0"
