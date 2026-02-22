@@ -2,26 +2,38 @@
 title: "BART Baseball with PyMC"
 author: "Ryan Plain"
 date: "2026-02-20"
-categories: [Bayesian, PyMC, BART, Python]
+categories: [Bayesian, PyMC, BART]
 description: Replicating a PyMC Labs BART example for predicting pitcher whiff rates, with a look at hierarchical park effects and a Python tidybayes package.
 engine: jupyter
 ---
 
-This was my take at replicating [PyMC Labs BART baseball example](https://www.pymc-labs.com/blog-posts/bayesian-additive-regression-tree-swinging-strikes) and to get experience with BART. A lot of learnings and quirks along the way. One of the biggest gotchas was how BART models are saved to disk and the tree information you lose when starting a new session. I've implemented it below, but it is covered in this [GitHub issue](https://github.com/pymc-devs/pymc-bart/issues/123#issuecomment-3105432020)
+PyMC Labs put out a post recently called [Modeling Swinging Strikes with Bayesian Additive Regression Trees (BART)](https://www.pymc-labs.com/blog-posts/bayesian-additive-regression-tree-swinging-strikes). It goes over implementing BART models in PyMC and provides a nuanced use case.
 
-Additionally, I built a `bayestidy` package to replicate what [Tidybayes](https://mjskay.github.io/tidybayes/) does in the R ecosystem.
+At first I was largely dissapointed that only some of the code was included. While it would have been nice to have more of the sports logic to help replicate it, it did describe it through text. I have a better understanding now about the balance of detail in a post after working on this one. To include all the code would have required more time discussing the process, which takes away from the main premise of demonstrating the model.
+
+The work following is my attempt at recreating the models, visualizations, and analysis.
+
+Additionally, being an R enthusiast I built a [bayestidy](https://github.com/rplain1/bayestidy) package that replicates some of what [Tidybayes](https://mjskay.github.io/tidybayes/) does for the R ecosystem. This is an opinonated framework to working with the posterior distributions, built on previous work I've done.
 
 ## Imports
 
-To start, I had to leverage Claude to understand a weird quirk to render in quarto and jupyter. The first set of imports handle that, and LLM commented as such.
+The original post mentions that all of this can be run on a local laptop. It _can_ be done on a local laptop... technically. My machine is quite small relative to today's standards with 16 gb of memory, so that was a bit of a stretch.
 
-I have simple `RERUN` flag to compile the models or not. This _can_ be done on a local laptop. I only have 16 gb of memory, so it was a bit of a stretch. To work more efficiently I saved the data to disk and load with context managers to derive dataframes and plots needed from the posterior. This way I don't have all of it in memory at once.
+I have simple `RERUN` flag to compile the models or not.  To work more efficiently I saved the models to disk and subsequently loaded them back in with context managers to access what was needed. This way I didn't have to have all of it in memory at once, which was critical to render the document.
+
+::: {.callout-note collapse="true"}
+I leveraged Claude to understand how to get PyMC to render in quarto and jupyter. The first set of imports handle that, and LLM commented as such.
+
+I never figured that out on my own, and ran the chains consecutively in previous posts...
+:::
+
 
 ```{python}
-#| code-fold: true
 import sys
+
 # Python's multiprocessing spawn code assumes __main__.__spec__ exists,
 from mizani.scale import scale_continuous
+
 # but Jupyter/Quarto kernels don't set it. Fix before pymc_bart imports.
 if not hasattr(sys.modules.get("__main__"), "__spec__"):
     sys.modules["__main__"].__spec__ = None
@@ -30,6 +42,7 @@ from pybaseball import statcast, cache
 import pymc as pm
 import pymc_bart as pmb
 import polars as pl
+import pandas as pd
 import numpy as np
 import arviz as az
 from pathlib import Path
@@ -38,12 +51,23 @@ from plotnine import *
 import bayestidy as bt
 import pickle
 import xarray as xr
-from pymc_bart.utils import _sample_posterior # needed for BART with new session
+from pymc_bart.utils import _sample_posterior  # needed for BART with new session
 
 # Set to True to re-fetch data from pybaseball and refit the model
 RERUN = False
 
+if RERUN or not Path("data/df.parquet").exists():
+    cache.disable()
+    df = statcast(start_dt="2024-03-28", end_dt="2024-09-29")
+    pl.from_pandas(df).write_parquet("data/df.parquet")
+else:
+    df = pl.read_parquet("data/df.parquet").to_pandas()
+```
 
+Plotting functions below.
+
+```{python}
+# | code-fold: true
 def calibration_plot(p_hat, y, label="Train"):
     cal_df = pl.DataFrame({"p_hat": p_hat.astype(np.float64), "y": y})
     breaks = np.linspace(cal_df["p_hat"].min(), cal_df["p_hat"].max(), 11)[
@@ -79,28 +103,16 @@ def add_whiff_plus(df):
     assert "p_hat" in df.columns, "dataframe does not have `p_hat`"
     p_hat = pl.col("p_hat")
     return df.with_columns(whiff_plus=100 + 10 * (p_hat - p_hat.mean()) / p_hat.std())
-
-
-
 ```
 
-Here you can get a sense of how I'm leveraging the `RERUN` flag. All of the I/O has similar conditional logic.
-
-```{python}
-if RERUN or not Path("data/df.parquet").exists():
-    cache.disable()
-    df = statcast(start_dt="2024-03-28", end_dt="2024-09-29")
-    pl.from_pandas(df).write_parquet("data/df.parquet")
-else:
-    df = pl.read_parquet("data/df.parquet").to_pandas()
-```
 
 ## Model
 
-The first model replicates PyMC Lab's initial model with 4 features. If my logic is somewhat correct for how they filtered the data, the rest was fairly straightforward.
+The first model replicates PyMC Lab's 4-feature model. If my sports logic is somewhat correct for how they filtered the data, the rest was fairly straightforward.
 - filter for `4-Seam Fastball`
 - calculate whiffs as swings
 - I removed 200 records with null values
+- Split into train/test splits
 
 ```{python}
 #| code-fold: true
@@ -157,11 +169,18 @@ coords = {"obs": player_names_train}
 
 ```
 
-Working with the posterior `az.InferenceData` object turned out to have different behavior than expected.
 
-Essentially I was able to still save the object and load it into new sessions to continue working with the posterior, however the tree information was not saved with the object (that is the extent of my understanding). When I came back to this in a new session, I was able to get the posterior distributions for the parameters, but predictions on the test set were all wrong. I ended up finding a solution documented in this [GitHub issue](https://github.com/pymc-devs/pymc-bart/issues/123#issuecomment-3105432020).
+{::: {.callout-caution}
 
-I'm saving the `az.InferenceData` object and additionally a pickle file of the trees. Later on I used the functions in that github issue to do a different style of predictions.
+Working with the posterior `az.InferenceData` object turned out to have different behavior than expected. One of the biggest gotchas was how BART models are saved to disk, and the tree information you lose when starting a new session. I've implemented it below, but it is covered in this [GitHub issue](https://github.com/pymc-devs/pymc-bart/issues/123#issuecomment-3105432020)
+
+Essentially I was able to still save the object and load it into new sessions to continue working with the posterior, however the tree information was not saved with the object (that is the extent of my understanding). Coming back to this in a new session, only the posterior distributions for the saved parameters and values were available. Predictions were all off.
+
+I ended up finding a solution documented in this [GitHub issue](https://github.com/pymc-devs/pymc-bart/issues/123#issuecomment-3105432020).
+
+So here, I'm saving the `az.InferenceData` object and additionally a pickle file of the trees. Later on I used the functions in that github issue to do predictions.
+:::}
+
 
 ```{python}
 if (
@@ -198,7 +217,7 @@ else:
 
 ### Working with constraints
 
-Since there are two models, and one small machine, I context manage the inference data and pull out what is needed.
+The `p_train` aggregation is used for the calibration plots.
 
 ```{python}
 with xr.open_dataset("models/trace.nc", group="posterior") as post:
@@ -207,10 +226,18 @@ with xr.open_dataset("models/trace.nc", group="posterior") as post:
 
 ### Test Set
 
-Here is where `pymc_bart.utils._sample_posterior()` is needed. I wasn't able to do the traditional PyMC posterior predictions _if_ I started a new session.
+The workaround for BART in new sessions is to use `pymc_bart.utils._sample_posterior()`. Unlike most Bayesian models I've worked with, the predictions are from the trees and not a draw from a combination of parameters. I beleive if I wanted to sample the posterior predictive values for the test set, I could have done something like this:
 
 ```{python}
+#| eval: false
+with bart_model:
+    pm.set_data({"X_data": X_test})
+    ppc = pm.sample_posterior_predictive(idata, var_names=["mu", "p"])
+```
 
+Then saved that with the `az.Inferencedata` object. For the BART model, the calibrations on the test set give insight to the validity of the model's ability to predict, so I didn't go through that process here.
+
+```{python}
 rng = np.random.default_rng(42)
 mu_test_samples = _sample_posterior(all_trees, X_test, rng=rng, size=500, shape=1)
 # shape: (500, n_test, 1) → squeeze last dim → (500, n_test)
@@ -232,9 +259,10 @@ Looking good!
 
 ## Whiff+
 
-Really appreciated this metric as I have no domain knowledge over baseball. The pitcher names could be replaced with human-readable uuids and it would have no effect on my ability to work with the data.
+I appreciated this metric as I have little to no domain knowledge in baseball. The pitcher names could be replaced with human-readable uuids and it would not effect on my ability to work with the data.
 
 ```{python}
+#| code-fold: true
 if not isinstance(df, pl.DataFrame):
     df = pl.from_pandas(df)
 
@@ -331,17 +359,17 @@ plot_bottom
 
 ## Model (Improved)
 
-The next set of work is to implement their improved model, which leveraged a lot of baseball physics that I have little understanding of. I'm just trying to learn BART to use it in a domain I'm familiar with.
+Next to implement their improved model, which included a lot of baseball physics that I barely grasp. I'm just trying to learn BART to be able to use it in a domain I'm familiar with, so this logic was mostly LLM generated.
 
-What I did find incredibly useful was it's combination with a hierarchical component of park in conjunction with a tree based model. PyMC made this really slick to implement.
+What I did find incredibly useful was it's combination of a hierarchical component for park, in conjunction with a tree based model. PyMC made this really slick to implement.
+
+Logic to setup the training and test sets below. They both have similar training splits, but I have inconsistent coordinate mappings and it is not worth the couple of hours it takes to run on my machine to work through a clean refactor.
 
 ```{python}
 #| code-fold: true
 
 if isinstance(df, pl.DataFrame):
     df = df.to_pandas()
-
-
 
 cols = [
     "release_speed",
@@ -407,13 +435,6 @@ df_model_imp = df.copy().query(
 )[cols + new_cols]
 
 df_model_imp = df_model_imp.dropna()
-```
-
-Similar training splits, I have inconsistent coordinate mappings but it is not worth the couple of hours it takes to run on my machine to work through.
-
-```{python}
-#| code-fold: true
-import pandas as pd
 
 # Hold out 20 random pitchers for test set
 rng = np.random.default_rng(42)
@@ -449,8 +470,6 @@ park_idx_imp_test = pd.Categorical(
 player_names_imp_train = df_model_imp.loc[train_mask_imp, "player_name"].values
 coords_imp = {"obs": player_names_imp_train}
 ```
-
-
 
 ```{python}
 
