@@ -222,6 +222,13 @@ The `p_train` aggregation is used for the calibration plots.
 ```{python}
 with xr.open_dataset("models/trace.nc", group="posterior") as post:
     p_train = post["p"].mean(dim=("chain", "draw")).values
+    obs_names_train = post.coords["obs"].values
+
+with xr.open_dataset("models/trace.nc", group="observed_data") as obs_data:
+    y_train = obs_data["y_obs"].values
+
+# Update coords to match the saved model's obs ordering
+coords = {"obs": obs_names_train}
 ```
 
 ### Test Set
@@ -266,7 +273,10 @@ I appreciated this metric as I have little to no domain knowledge in baseball. T
 if not isinstance(df, pl.DataFrame):
     df = pl.from_pandas(df)
 
-df_train = pl.from_pandas(df_model.loc[train_mask].assign(p_hat=p_train)).pipe(add_whiff_plus)
+df_train = pl.DataFrame({
+    "player_name": obs_names_train,
+    "p_hat": p_train.astype(np.float64),
+}).pipe(add_whiff_plus)
 
 df_test = pl.from_pandas(df_model.loc[~train_mask].assign(p_hat=p_test)).pipe(add_whiff_plus)
 ```
@@ -274,7 +284,7 @@ df_test = pl.from_pandas(df_model.loc[~train_mask].assign(p_hat=p_test)).pipe(ad
 ### Median whiff plus leaderboard - training set
 
 ```{python}
-leaderboard = df_train.group_by(["player_name", "pitcher"]).agg(
+leaderboard = df_train.group_by("player_name").agg(
     pl.col("whiff_plus").median()
 ).sort("whiff_plus", descending=True)
 leaderboard

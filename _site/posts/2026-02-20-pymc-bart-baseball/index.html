@@ -156,7 +156,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
                 <div class="quarto-category">Bayesian</div>
                 <div class="quarto-category">PyMC</div>
                 <div class="quarto-category">BART</div>
-                <div class="quarto-category">Python</div>
               </div>
                   </div>
   </div>
@@ -192,90 +191,111 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<p>This was my take at replicating <a href="https://www.pymc-labs.com/blog-posts/bayesian-additive-regression-tree-swinging-strikes">PyMC Labs BART baseball example</a> and to get experience with BART. A lot of learnings and quirks along the way. One of the biggest gotchas was how BART models are saved to disk and the tree information you lose when starting a new session. I’ve implemented it below, but it is covered in this <a href="https://github.com/pymc-devs/pymc-bart/issues/123#issuecomment-3105432020">GitHub issue</a></p>
-<p>Additionally, I built a <code>bayestidy</code> package to replicate what <a href="https://mjskay.github.io/tidybayes/">Tidybayes</a> does in the R ecosystem.</p>
+<p>PyMC Labs put out a post recently called <a href="https://www.pymc-labs.com/blog-posts/bayesian-additive-regression-tree-swinging-strikes">Modeling Swinging Strikes with Bayesian Additive Regression Trees (BART)</a>. It goes over implementing BART models in PyMC and provides a nuanced use case.</p>
+<p>At first I was largely dissapointed that only some of the code was included. While it would have been nice to have more of the sports logic to help replicate it, it did describe it through text. I have a better understanding now about the balance of detail in a post after working on this one. To include all the code would have required more time discussing the process, which takes away from the main premise of demonstrating the model.</p>
+<p>The work following is my attempt at recreating the models, visualizations, and analysis.</p>
+<p>Additionally, being an R enthusiast I built a <a href="https://github.com/rplain1/bayestidy">bayestidy</a> package that replicates some of what <a href="https://mjskay.github.io/tidybayes/">Tidybayes</a> does for the R ecosystem. This is an opinonated framework to working with the posterior distributions, built on previous work I’ve done.</p>
 <section id="imports" class="level2">
 <h2 class="anchored" data-anchor-id="imports">Imports</h2>
-<p>To start, I had to leverage Claude to understand a weird quirk to render in quarto and jupyter. The first set of imports handle that, and LLM commented as such.</p>
-<p>I have simple <code>RERUN</code> flag to compile the models or not. This <em>can</em> be done on a local laptop. I only have 16 gb of memory, so it was a bit of a stretch. To work more efficiently I saved the data to disk and load with context managers to derive dataframes and plots needed from the posterior. This way I don’t have all of it in memory at once.</p>
+<p>The original post mentions that all of this can be run on a local laptop. It <em>can</em> be done on a local laptop… technically. My machine is quite small relative to today’s standards with 16 gb of memory, so that was a bit of a stretch.</p>
+<p>I have simple <code>RERUN</code> flag to compile the models or not. To work more efficiently I saved the models to disk and subsequently loaded them back in with context managers to access what was needed. This way I didn’t have to have all of it in memory at once, which was critical to render the document.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>I leveraged Claude to understand how to get PyMC to render in quarto and jupyter. The first set of imports handle that, and LLM commented as such.</p>
+<p>I never figured that out on my own, and ran the chains consecutively in previous posts…</p>
+</div>
+</div>
+</div>
 <div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Python's multiprocessing spawn code assumes __main__.__spec__ exists,</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mizani.scale <span class="im">import</span> scale_continuous</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># but Jupyter/Quarto kernels don't set it. Fix before pymc_bart imports.</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">not</span> <span class="bu">hasattr</span>(sys.modules.get(<span class="st">"__main__"</span>), <span class="st">"__spec__"</span>):</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    sys.modules[<span class="st">"__main__"</span>].__spec__ <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pybaseball <span class="im">import</span> statcast, cache</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pymc <span class="im">as</span> pm</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pymc_bart <span class="im">as</span> pmb</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> arviz <span class="im">as</span> az</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> StandardScaler</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> plotnine <span class="im">import</span> <span class="op">*</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> bayestidy <span class="im">as</span> bt</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pickle</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> xarray <span class="im">as</span> xr</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pymc_bart.utils <span class="im">import</span> _sample_posterior  <span class="co"># needed for BART with new session</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Set to True to re-fetch data from pybaseball and refit the model</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>RERUN <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> RERUN <span class="kw">or</span> <span class="kw">not</span> Path(<span class="st">"data/df.parquet"</span>).exists():</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    cache.disable()</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> statcast(start_dt<span class="op">=</span><span class="st">"2024-03-28"</span>, end_dt<span class="op">=</span><span class="st">"2024-09-29"</span>)</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    pl.from_pandas(df).write_parquet(<span class="st">"data/df.parquet"</span>)</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pl.read_parquet(<span class="st">"data/df.parquet"</span>).to_pandas()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Plotting functions below.</p>
+<div class="cell" data-execution_count="2">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Python's multiprocessing spawn code assumes __main__.__spec__ exists,</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mizani.scale <span class="im">import</span> scale_continuous</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># but Jupyter/Quarto kernels don't set it. Fix before pymc_bart imports.</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">not</span> <span class="bu">hasattr</span>(sys.modules.get(<span class="st">"__main__"</span>), <span class="st">"__spec__"</span>):</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    sys.modules[<span class="st">"__main__"</span>].__spec__ <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pybaseball <span class="im">import</span> statcast, cache</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pymc <span class="im">as</span> pm</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pymc_bart <span class="im">as</span> pmb</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> polars <span class="im">as</span> pl</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> arviz <span class="im">as</span> az</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> StandardScaler</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> plotnine <span class="im">import</span> <span class="op">*</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> bayestidy <span class="im">as</span> bt</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pickle</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> xarray <span class="im">as</span> xr</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pymc_bart.utils <span class="im">import</span> _sample_posterior <span class="co"># needed for BART with new session</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Set to True to re-fetch data from pybaseball and refit the model</span></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>RERUN <span class="op">=</span> <span class="va">False</span></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> calibration_plot(p_hat, y, label<span class="op">=</span><span class="st">"Train"</span>):</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    cal_df <span class="op">=</span> pl.DataFrame({<span class="st">"p_hat"</span>: p_hat.astype(np.float64), <span class="st">"y"</span>: y})</span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    breaks <span class="op">=</span> np.linspace(cal_df[<span class="st">"p_hat"</span>].<span class="bu">min</span>(), cal_df[<span class="st">"p_hat"</span>].<span class="bu">max</span>(), <span class="dv">11</span>)[</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>        <span class="dv">1</span>:<span class="op">-</span><span class="dv">1</span></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    ].tolist()</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    cal_summary <span class="op">=</span> (</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>        cal_df.with_columns(pl.col(<span class="st">"p_hat"</span>).cut(breaks).alias(<span class="st">"bin"</span>))</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>        .group_by(<span class="st">"bin"</span>)</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>        .agg(</span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>            pred_mean<span class="op">=</span>pl.col(<span class="st">"p_hat"</span>).mean(),</span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>            obs_mean<span class="op">=</span>pl.col(<span class="st">"y"</span>).mean(),</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>            n<span class="op">=</span>pl.col(<span class="st">"y"</span>).count(),</span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>        .sort(<span class="st">"pred_mean"</span>)</span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>        .to_pandas()</span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (</span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>        ggplot(cal_summary, aes(<span class="st">"pred_mean"</span>, <span class="st">"obs_mean"</span>, size<span class="op">=</span><span class="st">"n"</span>))</span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> geom_abline(intercept<span class="op">=</span><span class="dv">0</span>, slope<span class="op">=</span><span class="dv">1</span>, linetype<span class="op">=</span><span class="st">"dashed"</span>, color<span class="op">=</span><span class="st">"grey"</span>)</span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> geom_point(color<span class="op">=</span><span class="st">"#FF8C69"</span>, alpha<span class="op">=</span><span class="fl">0.85</span>)</span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> scale_size_continuous(<span class="bu">range</span><span class="op">=</span>(<span class="dv">2</span>, <span class="dv">14</span>), name<span class="op">=</span><span class="st">"N Pitches"</span>)</span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> labs(</span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>            title<span class="op">=</span><span class="ss">f"Calibration Plot (</span><span class="sc">{</span>label<span class="sc">}</span><span class="ss"> Data)"</span>,</span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>            x<span class="op">=</span><span class="st">"Predicted Whiff Probability"</span>,</span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>            y<span class="op">=</span><span class="st">"Observed Whiff Rate"</span>,</span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> theme_minimal()</span>
-<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> coord_cartesian(xlim<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>], ylim<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>])</span>
-<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_whiff_plus(df):</span>
-<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> <span class="st">"p_hat"</span> <span class="kw">in</span> df.columns, <span class="st">"dataframe does not have `p_hat`"</span></span>
-<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>    p_hat <span class="op">=</span> pl.col(<span class="st">"p_hat"</span>)</span>
-<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df.with_columns(whiff_plus<span class="op">=</span><span class="dv">100</span> <span class="op">+</span> <span class="dv">10</span> <span class="op">*</span> (p_hat <span class="op">-</span> p_hat.mean()) <span class="op">/</span> p_hat.std())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> calibration_plot(p_hat, y, label<span class="op">=</span><span class="st">"Train"</span>):</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    cal_df <span class="op">=</span> pl.DataFrame({<span class="st">"p_hat"</span>: p_hat.astype(np.float64), <span class="st">"y"</span>: y})</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    breaks <span class="op">=</span> np.linspace(cal_df[<span class="st">"p_hat"</span>].<span class="bu">min</span>(), cal_df[<span class="st">"p_hat"</span>].<span class="bu">max</span>(), <span class="dv">11</span>)[</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="dv">1</span>:<span class="op">-</span><span class="dv">1</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    ].tolist()</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    cal_summary <span class="op">=</span> (</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        cal_df.with_columns(pl.col(<span class="st">"p_hat"</span>).cut(breaks).alias(<span class="st">"bin"</span>))</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        .group_by(<span class="st">"bin"</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        .agg(</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>            pred_mean<span class="op">=</span>pl.col(<span class="st">"p_hat"</span>).mean(),</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>            obs_mean<span class="op">=</span>pl.col(<span class="st">"y"</span>).mean(),</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            n<span class="op">=</span>pl.col(<span class="st">"y"</span>).count(),</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        .sort(<span class="st">"pred_mean"</span>)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        .to_pandas()</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        ggplot(cal_summary, aes(<span class="st">"pred_mean"</span>, <span class="st">"obs_mean"</span>, size<span class="op">=</span><span class="st">"n"</span>))</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> geom_abline(intercept<span class="op">=</span><span class="dv">0</span>, slope<span class="op">=</span><span class="dv">1</span>, linetype<span class="op">=</span><span class="st">"dashed"</span>, color<span class="op">=</span><span class="st">"grey"</span>)</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> geom_point(color<span class="op">=</span><span class="st">"#FF8C69"</span>, alpha<span class="op">=</span><span class="fl">0.85</span>)</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> scale_size_continuous(<span class="bu">range</span><span class="op">=</span>(<span class="dv">2</span>, <span class="dv">14</span>), name<span class="op">=</span><span class="st">"N Pitches"</span>)</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> labs(</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>            title<span class="op">=</span><span class="ss">f"Calibration Plot (</span><span class="sc">{</span>label<span class="sc">}</span><span class="ss"> Data)"</span>,</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>            x<span class="op">=</span><span class="st">"Predicted Whiff Probability"</span>,</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>            y<span class="op">=</span><span class="st">"Observed Whiff Rate"</span>,</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> theme_minimal()</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> coord_cartesian(xlim<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>], ylim<span class="op">=</span>[<span class="dv">0</span>, <span class="fl">0.5</span>])</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_whiff_plus(df):</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> <span class="st">"p_hat"</span> <span class="kw">in</span> df.columns, <span class="st">"dataframe does not have `p_hat`"</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    p_hat <span class="op">=</span> pl.col(<span class="st">"p_hat"</span>)</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> df.with_columns(whiff_plus<span class="op">=</span><span class="dv">100</span> <span class="op">+</span> <span class="dv">10</span> <span class="op">*</span> (p_hat <span class="op">-</span> p_hat.mean()) <span class="op">/</span> p_hat.std())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-</div>
-<p>Here you can get a sense of how I’m leveraging the <code>RERUN</code> flag. All of the I/O has similar conditional logic.</p>
-<div class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> RERUN <span class="kw">or</span> <span class="kw">not</span> Path(<span class="st">"data/df.parquet"</span>).exists():</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    cache.disable()</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> statcast(start_dt<span class="op">=</span><span class="st">"2024-03-28"</span>, end_dt<span class="op">=</span><span class="st">"2024-09-29"</span>)</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    pl.from_pandas(df).write_parquet(<span class="st">"data/df.parquet"</span>)</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pl.read_parquet(<span class="st">"data/df.parquet"</span>).to_pandas()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="model" class="level2">
 <h2 class="anchored" data-anchor-id="model">Model</h2>
-<p>The first model replicates PyMC Lab’s initial model with 4 features. If my logic is somewhat correct for how they filtered the data, the rest was fairly straightforward. - filter for <code>4-Seam Fastball</code> - calculate whiffs as swings - I removed 200 records with null values</p>
+<p>The first model replicates PyMC Lab’s 4-feature model. If my sports logic is somewhat correct for how they filtered the data, the rest was fairly straightforward. - filter for <code>4-Seam Fastball</code> - calculate whiffs as swings - I removed 200 records with null values - Split into train/test splits</p>
 <div class="cell" data-execution_count="3">
 <details>
 <summary>Code</summary>
@@ -331,9 +351,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>coords <span class="op">=</span> {<span class="st">"obs"</span>: player_names_train}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<p>Working with the posterior <code>az.InferenceData</code> object turned out to have different behavior than expected.</p>
-<p>Essentially I was able to still save the object and load it into new sessions to continue working with the posterior, however the tree information was not saved with the object (that is the extent of my understanding). When I came back to this in a new session, I was able to get the posterior distributions for the parameters, but predictions on the test set were all wrong. I ended up finding a solution documented in this <a href="https://github.com/pymc-devs/pymc-bart/issues/123#issuecomment-3105432020">GitHub issue</a>.</p>
-<p>I’m saving the <code>az.InferenceData</code> object and additionally a pickle file of the trees. Later on I used the functions in that github issue to do a different style of predictions.</p>
+<p>{::: {.callout-caution}</p>
+<p>Working with the posterior <code>az.InferenceData</code> object turned out to have different behavior than expected. One of the biggest gotchas was how BART models are saved to disk, and the tree information you lose when starting a new session. I’ve implemented it below, but it is covered in this <a href="https://github.com/pymc-devs/pymc-bart/issues/123#issuecomment-3105432020">GitHub issue</a></p>
+<p>Essentially I was able to still save the object and load it into new sessions to continue working with the posterior, however the tree information was not saved with the object (that is the extent of my understanding). Coming back to this in a new session, only the posterior distributions for the saved parameters and values were available. Predictions were all off.</p>
+<p>I ended up finding a solution documented in this <a href="https://github.com/pymc-devs/pymc-bart/issues/123#issuecomment-3105432020">GitHub issue</a>.</p>
+<p>So here, I’m saving the <code>az.InferenceData</code> object and additionally a pickle file of the trees. Later on I used the functions in that github issue to do predictions. :::}</p>
 <div class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    RERUN</span>
@@ -368,35 +390,48 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="working-with-constraints" class="level3">
 <h3 class="anchored" data-anchor-id="working-with-constraints">Working with constraints</h3>
-<p>Since there are two models, and one small machine, I context manage the inference data and pull out what is needed.</p>
+<p>The <code>p_train</code> aggregation is used for the calibration plots.</p>
 <div class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> xr.open_dataset(<span class="st">"models/trace.nc"</span>, group<span class="op">=</span><span class="st">"posterior"</span>) <span class="im">as</span> post:</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    p_train <span class="op">=</span> post[<span class="st">"p"</span>].mean(dim<span class="op">=</span>(<span class="st">"chain"</span>, <span class="st">"draw"</span>)).values</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    p_train <span class="op">=</span> post[<span class="st">"p"</span>].mean(dim<span class="op">=</span>(<span class="st">"chain"</span>, <span class="st">"draw"</span>)).values</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    obs_names_train <span class="op">=</span> post.coords[<span class="st">"obs"</span>].values</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> xr.open_dataset(<span class="st">"models/trace.nc"</span>, group<span class="op">=</span><span class="st">"observed_data"</span>) <span class="im">as</span> obs_data:</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    y_train <span class="op">=</span> obs_data[<span class="st">"y_obs"</span>].values</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Update coords to match the saved model's obs ordering</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>coords <span class="op">=</span> {<span class="st">"obs"</span>: obs_names_train}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="test-set" class="level3">
 <h3 class="anchored" data-anchor-id="test-set">Test Set</h3>
-<p>Here is where <code>pymc_bart.utils._sample_posterior()</code> is needed. I wasn’t able to do the traditional PyMC posterior predictions <em>if</em> I started a new session.</p>
+<p>The workaround for BART in new sessions is to use <code>pymc_bart.utils._sample_posterior()</code>. Unlike most Bayesian models I’ve worked with, the predictions are from the trees and not a draw from a combination of parameters. I beleive if I wanted to sample the posterior predictive values for the test set, I could have done something like this:</p>
 <div class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">42</span>)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>mu_test_samples <span class="op">=</span> _sample_posterior(all_trees, X_test, rng<span class="op">=</span>rng, size<span class="op">=</span><span class="dv">500</span>, shape<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># shape: (500, n_test, 1) → squeeze last dim → (500, n_test)</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>mu_test_samples <span class="op">=</span> mu_test_samples.squeeze(<span class="op">-</span><span class="dv">1</span>)</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>p_test <span class="op">=</span> (<span class="dv">1</span> <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> np.exp(<span class="op">-</span>mu_test_samples))).mean(axis<span class="op">=</span><span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> bart_model:</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    pm.set_data({<span class="st">"X_data"</span>: X_test})</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    ppc <span class="op">=</span> pm.sample_posterior_predictive(idata, var_names<span class="op">=</span>[<span class="st">"mu"</span>, <span class="st">"p"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Then saved that with the <code>az.Inferencedata</code> object. For the BART model, the calibrations on the test set give insight to the validity of the model’s ability to predict, so I didn’t go through that process here.</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">42</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>mu_test_samples <span class="op">=</span> _sample_posterior(all_trees, X_test, rng<span class="op">=</span>rng, size<span class="op">=</span><span class="dv">500</span>, shape<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># shape: (500, n_test, 1) → squeeze last dim → (500, n_test)</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>mu_test_samples <span class="op">=</span> mu_test_samples.squeeze(<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>p_test <span class="op">=</span> (<span class="dv">1</span> <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> np.exp(<span class="op">-</span>mu_test_samples))).mean(axis<span class="op">=</span><span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="calibration-plots" class="level3">
 <h3 class="anchored" data-anchor-id="calibration-plots">Calibration Plots</h3>
-<div class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>calibration_plot(p_train, y_train, label<span class="op">=</span><span class="st">"Train"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="7">
-<p><img src="index_files/figure-html/cell-8-output-1.png" width="672" height="480"></p>
-</div>
-</div>
 <div class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>calibration_plot(p_test, y_test, label<span class="op">=</span><span class="st">"Test"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>calibration_plot(p_train, y_train, label<span class="op">=</span><span class="st">"Train"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
 <p><img src="index_files/figure-html/cell-9-output-1.png" width="672" height="480"></p>
+</div>
+</div>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>calibration_plot(p_test, y_test, label<span class="op">=</span><span class="st">"Test"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<p><img src="index_files/figure-html/cell-10-output-1.png" width="672" height="480"></p>
 </div>
 </div>
 <p>Looking good!</p>
@@ -404,22 +439,28 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="whiff" class="level2">
 <h2 class="anchored" data-anchor-id="whiff">Whiff+</h2>
-<p>Really appreciated this metric as I have no domain knowledge over baseball. The pitcher names could be replaced with human-readable uuids and it would have no effect on my ability to work with the data.</p>
-<div class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">not</span> <span class="bu">isinstance</span>(df, pl.DataFrame):</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pl.from_pandas(df)</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>df_train <span class="op">=</span> pl.from_pandas(df_model.loc[train_mask].assign(p_hat<span class="op">=</span>p_train)).pipe(add_whiff_plus)</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>df_test <span class="op">=</span> pl.from_pandas(df_model.loc[<span class="op">~</span>train_mask].assign(p_hat<span class="op">=</span>p_test)).pipe(add_whiff_plus)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>I appreciated this metric as I have little to no domain knowledge in baseball. The pitcher names could be replaced with human-readable uuids and it would not effect on my ability to work with the data.</p>
+<div class="cell" data-execution_count="10">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">not</span> <span class="bu">isinstance</span>(df, pl.DataFrame):</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> pl.from_pandas(df)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>df_train <span class="op">=</span> pl.DataFrame({</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"player_name"</span>: obs_names_train,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"p_hat"</span>: p_train.astype(np.float64),</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>}).pipe(add_whiff_plus)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>df_test <span class="op">=</span> pl.from_pandas(df_model.loc[<span class="op">~</span>train_mask].assign(p_hat<span class="op">=</span>p_test)).pipe(add_whiff_plus)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <section id="median-whiff-plus-leaderboard---training-set" class="level3">
 <h3 class="anchored" data-anchor-id="median-whiff-plus-leaderboard---training-set">Median whiff plus leaderboard - training set</h3>
-<div class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>leaderboard <span class="op">=</span> df_train.group_by([<span class="st">"player_name"</span>, <span class="st">"pitcher"</span>]).agg(</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    pl.col(<span class="st">"whiff_plus"</span>).median()</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>).sort(<span class="st">"whiff_plus"</span>, descending<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>leaderboard</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>leaderboard <span class="op">=</span> df_train.group_by(<span class="st">"player_name"</span>).agg(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    pl.col(<span class="st">"whiff_plus"</span>).median()</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>).sort(<span class="st">"whiff_plus"</span>, descending<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>leaderboard</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <div><style>
 .dataframe > thead > tr,
@@ -428,75 +469,62 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   white-space: pre-wrap;
 }
 </style>
-<small>shape: (731, 3)</small>
+<small>shape: (730, 2)</small>
 <table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th">player_name</th>
-<th data-quarto-table-cell-role="th">pitcher</th>
 <th data-quarto-table-cell-role="th">whiff_plus</th>
 </tr>
 <tr class="odd">
 <th>str</th>
-<th>i64</th>
 <th>f64</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>"Kopech, Michael"</td>
-<td>656629</td>
-<td>126.635238</td>
+<td>125.462949</td>
 </tr>
 <tr class="even">
 <td>"Montgomery, Mason"</td>
-<td>682254</td>
-<td>123.672391</td>
+<td>124.361451</td>
 </tr>
 <tr class="odd">
 <td>"Helsley, Ryan"</td>
-<td>664854</td>
-<td>120.598885</td>
+<td>120.247161</td>
 </tr>
 <tr class="even">
-<td>"Miller, Mason"</td>
-<td>695243</td>
-<td>119.674391</td>
-</tr>
-<tr class="odd">
 <td>"Ort, Kaleb"</td>
-<td>672391</td>
-<td>119.438349</td>
+<td>119.918061</td>
+</tr>
+<tr class="odd">
+<td>"Estrada, Jeremiah"</td>
+<td>119.773609</td>
 </tr>
 <tr class="even">
 <td>…</td>
 <td>…</td>
-<td>…</td>
 </tr>
 <tr class="odd">
-<td>"Hendricks, Kyle"</td>
-<td>543294</td>
-<td>82.9846</td>
+<td>"Lyles, Jordan"</td>
+<td>83.248874</td>
 </tr>
 <tr class="even">
 <td>"Dunning, Dane"</td>
-<td>641540</td>
-<td>82.717351</td>
+<td>83.025733</td>
 </tr>
 <tr class="odd">
 <td>"Lively, Ben"</td>
-<td>594902</td>
-<td>82.40198</td>
+<td>82.574925</td>
 </tr>
 <tr class="even">
 <td>"Rogers, Tyler"</td>
-<td>643511</td>
-<td>81.957615</td>
+<td>82.3153</td>
 </tr>
 <tr class="odd">
 <td>"Crawford, Brandon"</td>
-<td>543063</td>
-<td>81.711232</td>
+<td>82.221916</td>
 </tr>
 </tbody>
 </table>
@@ -508,7 +536,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="visualizing-the-leaderboard">Visualizing the leaderboard</h3>
 <p>The size of the dataset did not lend well to work with the new package. In its current state, <code>bayestidy</code> will convert everything to pandas in underlying <code>plotnine</code> functions, as it is yet to have first class <code>polars</code> support.</p>
 <div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -517,200 +545,192 @@ Note
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>This is a long-standing <a href="https://github.com/has2k1/plotnine/issues/602">issue</a> that needs a solution, outside of polars from what I can tell.</p>
 </div>
 </div>
 </div>
 <p>The tidybayes approach would have been something like the following:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>fit  <span class="sc">|&gt;</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as_draws_df</span>() <span class="sc">|&gt;</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="fu">everything</span>()) <span class="sc">|&gt;</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(player <span class="sc">%in%</span> player_names) <span class="sc">|&gt;</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(value, player_name)) <span class="sc">|&gt;</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stat_halfeye</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>fit  <span class="sc">|&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as_draws_df</span>() <span class="sc">|&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_longer</span>(<span class="fu">everything</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(player <span class="sc">%in%</span> player_names) <span class="sc">|&gt;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggplot</span>(<span class="fu">aes</span>(value, player_name)) <span class="sc">|&gt;</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">stat_halfeye</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>With this size of dataset, <code>bt.spread_draws()</code> also really struggled here. I’m still learning how I can make this better, but for now I compute whiff+ in xarray space across the full pitcher population before subsetting.</p>
 <p>At least I can still use the tidy framework for plotting!</p>
-<div class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> whiff_plus_plot(leaderboard, post, coords, n<span class="op">=</span><span class="dv">15</span>, top<span class="op">=</span><span class="va">True</span>, var<span class="op">=</span><span class="st">"p"</span>):</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    players <span class="op">=</span> (leaderboard.head(n) <span class="cf">if</span> top <span class="cf">else</span> leaderboard.tail(n))[</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"player_name"</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    ].to_list()</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    indices <span class="op">=</span> np.where(np.isin(coords[<span class="st">"obs"</span>], players))[<span class="dv">0</span>]</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    p_da <span class="op">=</span> post[var]</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    p_mean <span class="op">=</span> p_da.mean(dim<span class="op">=</span><span class="st">"obs"</span>)</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    p_std <span class="op">=</span> p_da.std(dim<span class="op">=</span><span class="st">"obs"</span>)</span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    whiff_plus_da <span class="op">=</span> (<span class="dv">100</span> <span class="op">+</span> <span class="dv">10</span> <span class="op">*</span> (p_da <span class="op">-</span> p_mean) <span class="op">/</span> p_std).isel(obs<span class="op">=</span>indices)</span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    df_draws <span class="op">=</span> bt.spread_draws(</span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        whiff_plus_da.to_dataset(name<span class="op">=</span><span class="st">"whiff_plus"</span>), <span class="st">"whiff_plus"</span>, group<span class="op">=</span><span class="va">None</span></span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    order <span class="op">=</span> (</span>
-<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        df_draws.group_by(<span class="st">"obs"</span>)</span>
-<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>        .agg(pl.col(<span class="st">"whiff_plus"</span>).mean())</span>
-<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        .sort(<span class="st">"whiff_plus"</span>)[<span class="st">"obs"</span>]</span>
-<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        .to_list()</span>
-<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    plot_data <span class="op">=</span> df_draws.group_by(<span class="st">"obs"</span>).map_groups(</span>
-<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>        <span class="kw">lambda</span> df: df.sample(n<span class="op">=</span><span class="bu">min</span>(<span class="dv">100_000</span>, <span class="bu">len</span>(df)), with_replacement<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>    title <span class="op">=</span> <span class="ss">f"Top </span><span class="sc">{</span>n<span class="sc">}</span><span class="ss"> Whiff+"</span> <span class="cf">if</span> top <span class="cf">else</span> <span class="ss">f"Bottom </span><span class="sc">{</span>n<span class="sc">}</span><span class="ss"> Whiff+"</span></span>
-<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    fill <span class="op">=</span> <span class="st">"lightblue"</span> <span class="cf">if</span> top <span class="cf">else</span> <span class="st">"lightsalmon"</span></span>
-<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (</span>
-<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>        ggplot(plot_data, aes(<span class="st">"whiff_plus"</span>, <span class="st">"obs"</span>))</span>
-<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> bt.stat_halfeye(fill<span class="op">=</span>fill, alpha<span class="op">=</span><span class="fl">0.5</span>)</span>
-<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> scale_y_discrete(limits<span class="op">=</span>order)</span>
-<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> labs(title<span class="op">=</span>title, x<span class="op">=</span><span class="st">"Whiff+"</span>, y<span class="op">=</span><span class="st">"Pitcher"</span>)</span>
-<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> theme_minimal()</span>
-<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
 <div class="cell" data-execution_count="12">
-<details>
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> xr.open_dataset(<span class="st">"models/trace.nc"</span>, group<span class="op">=</span><span class="st">"posterior"</span>) <span class="im">as</span> post:</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    plot_top <span class="op">=</span> whiff_plus_plot(leaderboard, post, coords, n<span class="op">=</span><span class="dv">10</span>, top<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    plot_bottom <span class="op">=</span> whiff_plus_plot(leaderboard, post, coords, n<span class="op">=</span><span class="dv">10</span>, top<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>plot_top</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-<div class="cell-output cell-output-display" data-execution_count="12">
-<p><img src="index_files/figure-html/cell-13-output-1.png" width="672" height="480"></p>
-</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> whiff_plus_plot(leaderboard, post, coords, n<span class="op">=</span><span class="dv">15</span>, top<span class="op">=</span><span class="va">True</span>, var<span class="op">=</span><span class="st">"p"</span>):</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    players <span class="op">=</span> (leaderboard.head(n) <span class="cf">if</span> top <span class="cf">else</span> leaderboard.tail(n))[</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"player_name"</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    ].to_list()</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    indices <span class="op">=</span> np.where(np.isin(coords[<span class="st">"obs"</span>], players))[<span class="dv">0</span>]</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    p_da <span class="op">=</span> post[var]</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    p_mean <span class="op">=</span> p_da.mean(dim<span class="op">=</span><span class="st">"obs"</span>)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    p_std <span class="op">=</span> p_da.std(dim<span class="op">=</span><span class="st">"obs"</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    whiff_plus_da <span class="op">=</span> (<span class="dv">100</span> <span class="op">+</span> <span class="dv">10</span> <span class="op">*</span> (p_da <span class="op">-</span> p_mean) <span class="op">/</span> p_std).isel(obs<span class="op">=</span>indices)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    df_draws <span class="op">=</span> bt.spread_draws(</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>        whiff_plus_da.to_dataset(name<span class="op">=</span><span class="st">"whiff_plus"</span>), <span class="st">"whiff_plus"</span>, group<span class="op">=</span><span class="va">None</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    order <span class="op">=</span> (</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>        df_draws.group_by(<span class="st">"obs"</span>)</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>        .agg(pl.col(<span class="st">"whiff_plus"</span>).mean())</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>        .sort(<span class="st">"whiff_plus"</span>)[<span class="st">"obs"</span>]</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>        .to_list()</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>    plot_data <span class="op">=</span> df_draws.group_by(<span class="st">"obs"</span>).map_groups(</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>        <span class="kw">lambda</span> df: df.sample(n<span class="op">=</span><span class="bu">min</span>(<span class="dv">100_000</span>, <span class="bu">len</span>(df)), with_replacement<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>    title <span class="op">=</span> <span class="ss">f"Top </span><span class="sc">{</span>n<span class="sc">}</span><span class="ss"> Whiff+"</span> <span class="cf">if</span> top <span class="cf">else</span> <span class="ss">f"Bottom </span><span class="sc">{</span>n<span class="sc">}</span><span class="ss"> Whiff+"</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>    fill <span class="op">=</span> <span class="st">"lightblue"</span> <span class="cf">if</span> top <span class="cf">else</span> <span class="st">"lightsalmon"</span></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (</span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>        ggplot(plot_data, aes(<span class="st">"whiff_plus"</span>, <span class="st">"obs"</span>))</span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> bt.stat_halfeye(fill<span class="op">=</span>fill, alpha<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> scale_y_discrete(limits<span class="op">=</span>order)</span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> labs(title<span class="op">=</span>title, x<span class="op">=</span><span class="st">"Whiff+"</span>, y<span class="op">=</span><span class="st">"Pitcher"</span>)</span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> theme_minimal()</span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell" data-execution_count="13">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>plot_bottom</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> xr.open_dataset(<span class="st">"models/trace.nc"</span>, group<span class="op">=</span><span class="st">"posterior"</span>) <span class="im">as</span> post:</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    plot_top <span class="op">=</span> whiff_plus_plot(leaderboard, post, coords, n<span class="op">=</span><span class="dv">10</span>, top<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    plot_bottom <span class="op">=</span> whiff_plus_plot(leaderboard, post, coords, n<span class="op">=</span><span class="dv">10</span>, top<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>plot_top</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<p><img src="index_files/figure-html/cell-14-output-1.png" width="672" height="480"></p>
+</div>
+</div>
+<div class="cell" data-execution_count="14">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>plot_bottom</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-display" data-execution_count="13">
-<p><img src="index_files/figure-html/cell-14-output-1.png" width="672" height="480"></p>
+<p><img src="index_files/figure-html/cell-15-output-1.png" width="672" height="480"></p>
 </div>
 </div>
 </section>
 </section>
 <section id="model-improved" class="level2">
 <h2 class="anchored" data-anchor-id="model-improved">Model (Improved)</h2>
-<p>The next set of work is to implement their improved model, which leveraged a lot of baseball physics that I have little understanding of. I’m just trying to learn BART to use it in a domain I’m familiar with.</p>
-<p>What I did find incredibly useful was it’s combination with a hierarchical component of park in conjunction with a tree based model. PyMC made this really slick to implement.</p>
-<div class="cell" data-execution_count="14">
-<details>
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">isinstance</span>(df, pl.DataFrame):</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df.to_pandas()</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>cols <span class="op">=</span> [</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"release_speed"</span>,</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"pfx_x"</span>,</span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"pfx_z"</span>,</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"release_spin_rate"</span>,</span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"description"</span>,</span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"pitcher"</span>,</span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">"player_name"</span>,</span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">"home_team"</span>,</span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"platoon_indicator"</span>] <span class="op">=</span> (df[<span class="st">"stand"</span>] <span class="op">==</span> df[<span class="st">"p_throws"</span>]).astype(<span class="bu">int</span>)</span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="co"># ------------- Disclaimer ------------------------------</span></span>
-<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="co"># This is outside the scope of what I wanted to learn here. All of the physics</span></span>
-<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a><span class="co"># features are generated from claude code.</span></span>
-<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Spin axis is a clock-face angle in degrees</span></span>
-<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert to a predicted movement direction unit vector</span></span>
-<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>spin_rad <span class="op">=</span> np.radians(df[<span class="st">"spin_axis"</span>])</span>
-<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>pred_x <span class="op">=</span> np.sin(spin_rad)  <span class="co"># horizontal component of predicted movement</span></span>
-<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>pred_z <span class="op">=</span> np.cos(spin_rad)  <span class="co"># vertical component of predicted movement</span></span>
-<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Actual movement vector</span></span>
-<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>act_x <span class="op">=</span> df[<span class="st">"pfx_x"</span>]</span>
-<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>act_z <span class="op">=</span> df[<span class="st">"pfx_z"</span>]</span>
-<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Angle between predicted and actual movement vectors</span></span>
-<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>dot <span class="op">=</span> pred_x <span class="op">*</span> act_x <span class="op">+</span> pred_z <span class="op">*</span> act_z</span>
-<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>pred_mag <span class="op">=</span> np.sqrt(pred_x<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> pred_z<span class="op">**</span><span class="dv">2</span>)  <span class="co"># always 1 since it's a unit vector</span></span>
-<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>act_mag <span class="op">=</span> np.sqrt(act_x<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> act_z<span class="op">**</span><span class="dv">2</span>)</span>
-<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"axis_differential"</span>] <span class="op">=</span> np.degrees(</span>
-<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>    np.arccos(np.clip(dot <span class="op">/</span> (pred_mag <span class="op">*</span> act_mag), <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>))</span>
-<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a><span class="co"># ----------------------------------------------------------</span></span>
-<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>new_cols <span class="op">=</span> [</span>
-<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>    <span class="st">"release_pos_x"</span>,</span>
-<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>    <span class="st">"release_pos_z"</span>,</span>
-<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>    <span class="st">"release_extension"</span>,</span>
-<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>    <span class="st">"platoon_indicator"</span>,</span>
-<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>    <span class="st">"axis_differential"</span>,</span>
-<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a>pitch_name <span class="op">=</span> <span class="st">"4-Seam Fastball"</span></span>
-<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a><span class="co"># this came from assessing the following and removing bunts</span></span>
-<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a><span class="co"># df.assign(swing = lambda x: ~x['swing_length'].isna()).groupby(['swing', 'description']).count()</span></span>
-<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>swings <span class="op">=</span> [</span>
-<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>    <span class="st">"hit_into_play"</span>,</span>
-<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a>    <span class="st">"swinging_strike"</span>,</span>
-<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a>    <span class="st">"foul_tip"</span>,</span>
-<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a>    <span class="st">"swinging_strike_blocked"</span>,</span>
-<span id="cb15-60"><a href="#cb15-60" aria-hidden="true" tabindex="-1"></a>    <span class="st">"foul"</span>,</span>
-<span id="cb15-61"><a href="#cb15-61" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb15-62"><a href="#cb15-62" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-63"><a href="#cb15-63" aria-hidden="true" tabindex="-1"></a>whiffs <span class="op">=</span> [<span class="st">"swinging_strike"</span>, <span class="st">"swinging_strike_blocked"</span>]</span>
-<span id="cb15-64"><a href="#cb15-64" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-65"><a href="#cb15-65" aria-hidden="true" tabindex="-1"></a>df_model_imp <span class="op">=</span> df.copy().query(</span>
-<span id="cb15-66"><a href="#cb15-66" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f'pitch_name == "</span><span class="sc">{</span>pitch_name<span class="sc">}</span><span class="ss">" and description in </span><span class="sc">{</span>swings<span class="sc">}</span><span class="ss">'</span></span>
-<span id="cb15-67"><a href="#cb15-67" aria-hidden="true" tabindex="-1"></a>)[cols <span class="op">+</span> new_cols]</span>
-<span id="cb15-68"><a href="#cb15-68" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-69"><a href="#cb15-69" aria-hidden="true" tabindex="-1"></a>df_model_imp <span class="op">=</span> df_model_imp.dropna()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-</div>
-<p>Similar training splits, I have inconsistent coordinate mappings but it is not worth the couple of hours it takes to run on my machine to work through.</p>
+<p>Next to implement their improved model, which included a lot of baseball physics that I barely grasp. I’m just trying to learn BART to be able to use it in a domain I’m familiar with, so this logic was mostly LLM generated.</p>
+<p>What I did find incredibly useful was it’s combination of a hierarchical component for park, in conjunction with a tree based model. PyMC made this really slick to implement.</p>
+<p>Logic to setup the training and test sets below. They both have similar training splits, but I have inconsistent coordinate mappings and it is not worth the couple of hours it takes to run on my machine to work through a clean refactor.</p>
 <div class="cell" data-execution_count="15">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Hold out 20 random pitchers for test set</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">42</span>)</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>pitchers_imp <span class="op">=</span> df_model_imp[<span class="st">"pitcher"</span>].unique()</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>holdout_pitchers_imp <span class="op">=</span> rng.choice(pitchers_imp, size<span class="op">=</span><span class="dv">20</span>, replace<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>train_mask_imp <span class="op">=</span> <span class="op">~</span>df_model_imp[<span class="st">"pitcher"</span>].isin(holdout_pitchers_imp)</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>feature_cols_imp <span class="op">=</span> [<span class="st">"release_speed"</span>, <span class="st">"pfx_x"</span>, <span class="st">"pfx_z"</span>, <span class="st">"release_spin_rate"</span>] <span class="op">+</span> new_cols</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>y_imp <span class="op">=</span> df_model_imp[<span class="st">"description"</span>].isin(whiffs).astype(<span class="bu">int</span>)</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Standardize features to z-scores (fit on train only)</span></span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>scaler_imp <span class="op">=</span> StandardScaler()</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>X_imp_train <span class="op">=</span> scaler_imp.fit_transform(</span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    df_model_imp.loc[train_mask_imp, feature_cols_imp]</span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>X_imp_test <span class="op">=</span> scaler_imp.transform(df_model_imp.loc[<span class="op">~</span>train_mask_imp, feature_cols_imp])</span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>y_imp_train <span class="op">=</span> y_imp[train_mask_imp].values</span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>y_imp_test <span class="op">=</span> y_imp[<span class="op">~</span>train_mask_imp].values</span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Encode home_team as integer park indices (fit on train only)</span></span>
-<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>park_categories <span class="op">=</span> pd.Categorical(</span>
-<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    df_model_imp.loc[train_mask_imp, <span class="st">"home_team"</span>]</span>
-<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>).categories</span>
-<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>n_parks_improved <span class="op">=</span> <span class="bu">len</span>(park_categories)</span>
-<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>park_idx_imp_train <span class="op">=</span> pd.Categorical(</span>
-<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>    df_model_imp.loc[train_mask_imp, <span class="st">"home_team"</span>], categories<span class="op">=</span>park_categories</span>
-<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>).codes</span>
-<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>park_idx_imp_test <span class="op">=</span> pd.Categorical(</span>
-<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>    df_model_imp.loc[<span class="op">~</span>train_mask_imp, <span class="st">"home_team"</span>], categories<span class="op">=</span>park_categories</span>
-<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>).codes</span>
-<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>player_names_imp_train <span class="op">=</span> df_model_imp.loc[train_mask_imp, <span class="st">"player_name"</span>].values</span>
-<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>coords_imp <span class="op">=</span> {<span class="st">"obs"</span>: player_names_imp_train}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">isinstance</span>(df, pl.DataFrame):</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df.to_pandas()</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>cols <span class="op">=</span> [</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"release_speed"</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"pfx_x"</span>,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"pfx_z"</span>,</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"release_spin_rate"</span>,</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"description"</span>,</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"pitcher"</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">"player_name"</span>,</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"home_team"</span>,</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"platoon_indicator"</span>] <span class="op">=</span> (df[<span class="st">"stand"</span>] <span class="op">==</span> df[<span class="st">"p_throws"</span>]).astype(<span class="bu">int</span>)</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="co"># ------------- Disclaimer ------------------------------</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="co"># This is outside the scope of what I wanted to learn here. All of the physics</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="co"># features are generated from claude code.</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Spin axis is a clock-face angle in degrees</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert to a predicted movement direction unit vector</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>spin_rad <span class="op">=</span> np.radians(df[<span class="st">"spin_axis"</span>])</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>pred_x <span class="op">=</span> np.sin(spin_rad)  <span class="co"># horizontal component of predicted movement</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>pred_z <span class="op">=</span> np.cos(spin_rad)  <span class="co"># vertical component of predicted movement</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Actual movement vector</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>act_x <span class="op">=</span> df[<span class="st">"pfx_x"</span>]</span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>act_z <span class="op">=</span> df[<span class="st">"pfx_z"</span>]</span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a><span class="co"># Angle between predicted and actual movement vectors</span></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>dot <span class="op">=</span> pred_x <span class="op">*</span> act_x <span class="op">+</span> pred_z <span class="op">*</span> act_z</span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>pred_mag <span class="op">=</span> np.sqrt(pred_x<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> pred_z<span class="op">**</span><span class="dv">2</span>)  <span class="co"># always 1 since it's a unit vector</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>act_mag <span class="op">=</span> np.sqrt(act_x<span class="op">**</span><span class="dv">2</span> <span class="op">+</span> act_z<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"axis_differential"</span>] <span class="op">=</span> np.degrees(</span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>    np.arccos(np.clip(dot <span class="op">/</span> (pred_mag <span class="op">*</span> act_mag), <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>))</span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a><span class="co"># ----------------------------------------------------------</span></span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>new_cols <span class="op">=</span> [</span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>    <span class="st">"release_pos_x"</span>,</span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>    <span class="st">"release_pos_z"</span>,</span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>    <span class="st">"release_extension"</span>,</span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>    <span class="st">"platoon_indicator"</span>,</span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>    <span class="st">"axis_differential"</span>,</span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>pitch_name <span class="op">=</span> <span class="st">"4-Seam Fastball"</span></span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a><span class="co"># this came from assessing the following and removing bunts</span></span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a><span class="co"># df.assign(swing = lambda x: ~x['swing_length'].isna()).groupby(['swing', 'description']).count()</span></span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>swings <span class="op">=</span> [</span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>    <span class="st">"hit_into_play"</span>,</span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>    <span class="st">"swinging_strike"</span>,</span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>    <span class="st">"foul_tip"</span>,</span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>    <span class="st">"swinging_strike_blocked"</span>,</span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>    <span class="st">"foul"</span>,</span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>whiffs <span class="op">=</span> [<span class="st">"swinging_strike"</span>, <span class="st">"swinging_strike_blocked"</span>]</span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a>df_model_imp <span class="op">=</span> df.copy().query(</span>
+<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f'pitch_name == "</span><span class="sc">{</span>pitch_name<span class="sc">}</span><span class="ss">" and description in </span><span class="sc">{</span>swings<span class="sc">}</span><span class="ss">'</span></span>
+<span id="cb16-65"><a href="#cb16-65" aria-hidden="true" tabindex="-1"></a>)[cols <span class="op">+</span> new_cols]</span>
+<span id="cb16-66"><a href="#cb16-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-67"><a href="#cb16-67" aria-hidden="true" tabindex="-1"></a>df_model_imp <span class="op">=</span> df_model_imp.dropna()</span>
+<span id="cb16-68"><a href="#cb16-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-69"><a href="#cb16-69" aria-hidden="true" tabindex="-1"></a><span class="co"># Hold out 20 random pitchers for test set</span></span>
+<span id="cb16-70"><a href="#cb16-70" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">42</span>)</span>
+<span id="cb16-71"><a href="#cb16-71" aria-hidden="true" tabindex="-1"></a>pitchers_imp <span class="op">=</span> df_model_imp[<span class="st">"pitcher"</span>].unique()</span>
+<span id="cb16-72"><a href="#cb16-72" aria-hidden="true" tabindex="-1"></a>holdout_pitchers_imp <span class="op">=</span> rng.choice(pitchers_imp, size<span class="op">=</span><span class="dv">20</span>, replace<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb16-73"><a href="#cb16-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-74"><a href="#cb16-74" aria-hidden="true" tabindex="-1"></a>train_mask_imp <span class="op">=</span> <span class="op">~</span>df_model_imp[<span class="st">"pitcher"</span>].isin(holdout_pitchers_imp)</span>
+<span id="cb16-75"><a href="#cb16-75" aria-hidden="true" tabindex="-1"></a>feature_cols_imp <span class="op">=</span> [<span class="st">"release_speed"</span>, <span class="st">"pfx_x"</span>, <span class="st">"pfx_z"</span>, <span class="st">"release_spin_rate"</span>] <span class="op">+</span> new_cols</span>
+<span id="cb16-76"><a href="#cb16-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-77"><a href="#cb16-77" aria-hidden="true" tabindex="-1"></a>y_imp <span class="op">=</span> df_model_imp[<span class="st">"description"</span>].isin(whiffs).astype(<span class="bu">int</span>)</span>
+<span id="cb16-78"><a href="#cb16-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-79"><a href="#cb16-79" aria-hidden="true" tabindex="-1"></a><span class="co"># Standardize features to z-scores (fit on train only)</span></span>
+<span id="cb16-80"><a href="#cb16-80" aria-hidden="true" tabindex="-1"></a>scaler_imp <span class="op">=</span> StandardScaler()</span>
+<span id="cb16-81"><a href="#cb16-81" aria-hidden="true" tabindex="-1"></a>X_imp_train <span class="op">=</span> scaler_imp.fit_transform(</span>
+<span id="cb16-82"><a href="#cb16-82" aria-hidden="true" tabindex="-1"></a>    df_model_imp.loc[train_mask_imp, feature_cols_imp]</span>
+<span id="cb16-83"><a href="#cb16-83" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-84"><a href="#cb16-84" aria-hidden="true" tabindex="-1"></a>X_imp_test <span class="op">=</span> scaler_imp.transform(df_model_imp.loc[<span class="op">~</span>train_mask_imp, feature_cols_imp])</span>
+<span id="cb16-85"><a href="#cb16-85" aria-hidden="true" tabindex="-1"></a>y_imp_train <span class="op">=</span> y_imp[train_mask_imp].values</span>
+<span id="cb16-86"><a href="#cb16-86" aria-hidden="true" tabindex="-1"></a>y_imp_test <span class="op">=</span> y_imp[<span class="op">~</span>train_mask_imp].values</span>
+<span id="cb16-87"><a href="#cb16-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-88"><a href="#cb16-88" aria-hidden="true" tabindex="-1"></a><span class="co"># Encode home_team as integer park indices (fit on train only)</span></span>
+<span id="cb16-89"><a href="#cb16-89" aria-hidden="true" tabindex="-1"></a>park_categories <span class="op">=</span> pd.Categorical(</span>
+<span id="cb16-90"><a href="#cb16-90" aria-hidden="true" tabindex="-1"></a>    df_model_imp.loc[train_mask_imp, <span class="st">"home_team"</span>]</span>
+<span id="cb16-91"><a href="#cb16-91" aria-hidden="true" tabindex="-1"></a>).categories</span>
+<span id="cb16-92"><a href="#cb16-92" aria-hidden="true" tabindex="-1"></a>n_parks_improved <span class="op">=</span> <span class="bu">len</span>(park_categories)</span>
+<span id="cb16-93"><a href="#cb16-93" aria-hidden="true" tabindex="-1"></a>park_idx_imp_train <span class="op">=</span> pd.Categorical(</span>
+<span id="cb16-94"><a href="#cb16-94" aria-hidden="true" tabindex="-1"></a>    df_model_imp.loc[train_mask_imp, <span class="st">"home_team"</span>], categories<span class="op">=</span>park_categories</span>
+<span id="cb16-95"><a href="#cb16-95" aria-hidden="true" tabindex="-1"></a>).codes</span>
+<span id="cb16-96"><a href="#cb16-96" aria-hidden="true" tabindex="-1"></a>park_idx_imp_test <span class="op">=</span> pd.Categorical(</span>
+<span id="cb16-97"><a href="#cb16-97" aria-hidden="true" tabindex="-1"></a>    df_model_imp.loc[<span class="op">~</span>train_mask_imp, <span class="st">"home_team"</span>], categories<span class="op">=</span>park_categories</span>
+<span id="cb16-98"><a href="#cb16-98" aria-hidden="true" tabindex="-1"></a>).codes</span>
+<span id="cb16-99"><a href="#cb16-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-100"><a href="#cb16-100" aria-hidden="true" tabindex="-1"></a>player_names_imp_train <span class="op">=</span> df_model_imp.loc[train_mask_imp, <span class="st">"player_name"</span>].values</span>
+<span id="cb16-101"><a href="#cb16-101" aria-hidden="true" tabindex="-1"></a>coords_imp <span class="op">=</span> {<span class="st">"obs"</span>: player_names_imp_train}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <div class="cell" data-execution_count="16">
@@ -778,13 +798,13 @@ Note
 </div>
 <div class="cell" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>calibration_plot(p_imp_train, y_imp_train, label<span class="op">=</span><span class="st">"Train (Improved)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="18">
+<div class="cell-output cell-output-display" data-execution_count="17">
 <p><img src="index_files/figure-html/cell-19-output-1.png" width="672" height="480"></p>
 </div>
 </div>
 <div class="cell" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>calibration_plot(p_imp_test, y_imp_test, label<span class="op">=</span><span class="st">"Test (Improved)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="19">
+<div class="cell-output cell-output-display" data-execution_count="18">
 <p><img src="index_files/figure-html/cell-20-output-1.png" width="672" height="480"></p>
 </div>
 </div>
@@ -810,7 +830,7 @@ Note
 <span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>leaderboard_imp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="20">
+<div class="cell-output cell-output-display" data-execution_count="19">
 <div><style>
 .dataframe > thead > tr,
 .dataframe > tbody > tr {
@@ -912,7 +932,7 @@ Note
 <span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>plot_top_imp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="21">
+<div class="cell-output cell-output-display" data-execution_count="20">
 <p><img src="index_files/figure-html/cell-22-output-1.png" width="672" height="480"></p>
 </div>
 </div>
@@ -921,7 +941,7 @@ Note
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>plot_bottom_imp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="22">
+<div class="cell-output cell-output-display" data-execution_count="21">
 <p><img src="index_files/figure-html/cell-23-output-1.png" width="672" height="480"></p>
 </div>
 </div>
@@ -955,7 +975,7 @@ Note
 <span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
 <span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme(panel_grid_minor<span class="op">=</span>element_blank())</span>
 <span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="23">
+<div class="cell-output cell-output-display" data-execution_count="22">
 <p><img src="index_files/figure-html/cell-24-output-1.png" width="672" height="480"></p>
 </div>
 </div>
@@ -1013,7 +1033,7 @@ Note
 <span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme(panel_grid_minor<span class="op">=</span> element_blank(), panel_grid_major_y<span class="op">=</span>element_blank(), legend_position<span class="op">=</span><span class="st">'bottom'</span>)</span>
 <span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(y <span class="op">=</span> <span class="st">''</span>, title<span class="op">=</span><span class="st">"Kopech estimated parameter comparison"</span>)</span>
 <span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="25">
+<div class="cell-output cell-output-display" data-execution_count="24">
 <p><img src="index_files/figure-html/cell-26-output-1.png" width="672" height="480"></p>
 </div>
 </div>
