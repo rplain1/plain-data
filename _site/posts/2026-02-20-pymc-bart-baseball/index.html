@@ -295,7 +295,13 @@ Note
 </section>
 <section id="model" class="level2">
 <h2 class="anchored" data-anchor-id="model">Model</h2>
-<p>The first model replicates PyMC Lab’s 4-feature model. If my sports logic is somewhat correct for how they filtered the data, the rest was fairly straightforward. - filter for <code>4-Seam Fastball</code> - calculate whiffs as swings - I removed 200 records with null values - Split into train/test splits</p>
+<p>The first model replicates PyMC Lab’s 4-feature model. If my sports logic is somewhat correct for how they filtered the data, the rest was fairly straightforward.</p>
+<ul>
+<li>filter for <code>4-Seam Fastball</code></li>
+<li>calculate whiffs as swings</li>
+<li>I removed 200 records with null values</li>
+<li>Split into train/test splits</li>
+</ul>
 <div class="cell" data-execution_count="3">
 <details>
 <summary>Code</summary>
@@ -351,11 +357,22 @@ Note
 <span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>coords <span class="op">=</span> {<span class="st">"obs"</span>: player_names_train}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<p>{::: {.callout-caution}</p>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution
+</div>
+</div>
+<div class="callout-body-container callout-body">
 <p>Working with the posterior <code>az.InferenceData</code> object turned out to have different behavior than expected. One of the biggest gotchas was how BART models are saved to disk, and the tree information you lose when starting a new session. I’ve implemented it below, but it is covered in this <a href="https://github.com/pymc-devs/pymc-bart/issues/123#issuecomment-3105432020">GitHub issue</a></p>
 <p>Essentially I was able to still save the object and load it into new sessions to continue working with the posterior, however the tree information was not saved with the object (that is the extent of my understanding). Coming back to this in a new session, only the posterior distributions for the saved parameters and values were available. Predictions were all off.</p>
 <p>I ended up finding a solution documented in this <a href="https://github.com/pymc-devs/pymc-bart/issues/123#issuecomment-3105432020">GitHub issue</a>.</p>
-<p>So here, I’m saving the <code>az.InferenceData</code> object and additionally a pickle file of the trees. Later on I used the functions in that github issue to do predictions. :::}</p>
+<p>So here, I’m saving the <code>az.InferenceData</code> object and additionally a pickle file of the trees. Later on I used the functions in that github issue to do predictions.</p>
+</div>
+</div>
 <div class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    RERUN</span>
@@ -424,13 +441,13 @@ Note
 <h3 class="anchored" data-anchor-id="calibration-plots">Calibration Plots</h3>
 <div class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>calibration_plot(p_train, y_train, label<span class="op">=</span><span class="st">"Train"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="7">
+<div class="cell-output cell-output-display" data-execution_count="25">
 <p><img src="index_files/figure-html/cell-9-output-1.png" width="672" height="480"></p>
 </div>
 </div>
 <div class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>calibration_plot(p_test, y_test, label<span class="op">=</span><span class="st">"Test"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="8">
+<div class="cell-output cell-output-display" data-execution_count="26">
 <p><img src="index_files/figure-html/cell-10-output-1.png" width="672" height="480"></p>
 </div>
 </div>
@@ -461,7 +478,7 @@ Note
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    pl.col(<span class="st">"whiff_plus"</span>).median()</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>).sort(<span class="st">"whiff_plus"</span>, descending<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>leaderboard</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="10">
+<div class="cell-output cell-output-display" data-execution_count="28">
 <div><style>
 .dataframe > thead > tr,
 .dataframe > tbody > tr {
@@ -536,7 +553,7 @@ Note
 <h3 class="anchored" data-anchor-id="visualizing-the-leaderboard">Visualizing the leaderboard</h3>
 <p>The size of the dataset did not lend well to work with the new package. In its current state, <code>bayestidy</code> will convert everything to pandas in underlying <code>plotnine</code> functions, as it is yet to have first class <code>polars</code> support.</p>
 <div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -545,7 +562,7 @@ Note
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div id="callout-3" class="callout-3-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <p>This is a long-standing <a href="https://github.com/has2k1/plotnine/issues/602">issue</a> that needs a solution, outside of polars from what I can tell.</p>
 </div>
@@ -607,7 +624,7 @@ Note
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>plot_top</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="12">
+<div class="cell-output cell-output-display" data-execution_count="30">
 <p><img src="index_files/figure-html/cell-14-output-1.png" width="672" height="480"></p>
 </div>
 </div>
@@ -616,7 +633,7 @@ Note
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>plot_bottom</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="13">
+<div class="cell-output cell-output-display" data-execution_count="31">
 <p><img src="index_files/figure-html/cell-15-output-1.png" width="672" height="480"></p>
 </div>
 </div>
@@ -798,13 +815,13 @@ Note
 </div>
 <div class="cell" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>calibration_plot(p_imp_train, y_imp_train, label<span class="op">=</span><span class="st">"Train (Improved)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="17">
+<div class="cell-output cell-output-display" data-execution_count="35">
 <p><img src="index_files/figure-html/cell-19-output-1.png" width="672" height="480"></p>
 </div>
 </div>
 <div class="cell" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>calibration_plot(p_imp_test, y_imp_test, label<span class="op">=</span><span class="st">"Test (Improved)"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="18">
+<div class="cell-output cell-output-display" data-execution_count="36">
 <p><img src="index_files/figure-html/cell-20-output-1.png" width="672" height="480"></p>
 </div>
 </div>
@@ -830,7 +847,7 @@ Note
 <span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>leaderboard_imp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="19">
+<div class="cell-output cell-output-display" data-execution_count="37">
 <div><style>
 .dataframe > thead > tr,
 .dataframe > tbody > tr {
@@ -932,7 +949,7 @@ Note
 <span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>plot_top_imp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="20">
+<div class="cell-output cell-output-display" data-execution_count="38">
 <p><img src="index_files/figure-html/cell-22-output-1.png" width="672" height="480"></p>
 </div>
 </div>
@@ -941,7 +958,7 @@ Note
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>plot_bottom_imp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-display" data-execution_count="21">
+<div class="cell-output cell-output-display" data-execution_count="39">
 <p><img src="index_files/figure-html/cell-23-output-1.png" width="672" height="480"></p>
 </div>
 </div>
@@ -975,7 +992,7 @@ Note
 <span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme_minimal()</span>
 <span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme(panel_grid_minor<span class="op">=</span>element_blank())</span>
 <span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="22">
+<div class="cell-output cell-output-display" data-execution_count="40">
 <p><img src="index_files/figure-html/cell-24-output-1.png" width="672" height="480"></p>
 </div>
 </div>
@@ -1033,7 +1050,7 @@ Note
 <span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> theme(panel_grid_minor<span class="op">=</span> element_blank(), panel_grid_major_y<span class="op">=</span>element_blank(), legend_position<span class="op">=</span><span class="st">'bottom'</span>)</span>
 <span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span> labs(y <span class="op">=</span> <span class="st">''</span>, title<span class="op">=</span><span class="st">"Kopech estimated parameter comparison"</span>)</span>
 <span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="24">
+<div class="cell-output cell-output-display" data-execution_count="42">
 <p><img src="index_files/figure-html/cell-26-output-1.png" width="672" height="480"></p>
 </div>
 </div>

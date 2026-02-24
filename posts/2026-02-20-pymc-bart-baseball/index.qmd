@@ -109,6 +109,7 @@ def add_whiff_plus(df):
 ## Model
 
 The first model replicates PyMC Lab's 4-feature model. If my sports logic is somewhat correct for how they filtered the data, the rest was fairly straightforward.
+
 - filter for `4-Seam Fastball`
 - calculate whiffs as swings
 - I removed 200 records with null values
@@ -170,7 +171,7 @@ coords = {"obs": player_names_train}
 ```
 
 
-{::: {.callout-caution}
+::: {.callout-caution}
 
 Working with the posterior `az.InferenceData` object turned out to have different behavior than expected. One of the biggest gotchas was how BART models are saved to disk, and the tree information you lose when starting a new session. I've implemented it below, but it is covered in this [GitHub issue](https://github.com/pymc-devs/pymc-bart/issues/123#issuecomment-3105432020)
 
@@ -179,7 +180,7 @@ Essentially I was able to still save the object and load it into new sessions to
 I ended up finding a solution documented in this [GitHub issue](https://github.com/pymc-devs/pymc-bart/issues/123#issuecomment-3105432020).
 
 So here, I'm saving the `az.InferenceData` object and additionally a pickle file of the trees. Later on I used the functions in that github issue to do predictions.
-:::}
+:::
 
 
 ```{python}
